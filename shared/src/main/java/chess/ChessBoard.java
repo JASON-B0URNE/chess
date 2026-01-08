@@ -13,14 +13,6 @@ public class ChessBoard {
     private ArrayList<ArrayList<chessPiece>> chessBoard;
 
 
-
-    private ArrayList<chessPiece> setupPawnRow(ChessGame.TeamColor color) {
-        ArrayList<chessPiece> pawnRow = new ArrayList<chessPiece>();
-
-        for (int i = 0; i < CHESS_BOARD_LENGTH; i++) {
-            pawnRow.add(ChessPiece(color, ChessPiece.PieceType.PAWN));
-        }
-    }
     private void setupBackRow(String color) {
 
     }
@@ -41,7 +33,8 @@ public class ChessBoard {
      * @param piece    the piece to add
      */
     public void addPiece(ChessPosition position, ChessPiece piece) {
-        throw new RuntimeException("Not implemented");
+
+
     }
 
     /**
