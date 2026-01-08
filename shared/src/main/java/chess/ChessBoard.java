@@ -1,6 +1,6 @@
 package chess;
 
-import java.util.ArrayList;
+//TODO: Include a remove piece function.
 
 /**
  * A chessboard that can hold and rearrange chess pieces.
@@ -9,20 +9,55 @@ import java.util.ArrayList;
  * signature of the existing methods.
  */
 public class ChessBoard {
-    private static int CHESS_BOARD_LENGTH = 8;
+    private static final int CHESS_BOARD_LENGTH = 8;
+
+    private static final int FRONT_EXECUTIVE_ROW_INDEX = 1;
+    private static final int FRONT_PAWN_ROW_INDEX = 2;
+
+    private static final int BACK_EXECUTIVE_ROW_INDEX = 8;
+    private static final int BACK_PAWN_ROW_INDEX = 7;
+
+    private static final int LEFT_ROOK_COL_INDEX = 1;
+    private static final int RIGHT_ROOK_COL_INDEX = 8;
+
+    private static final int LEFT_KNIGHT_COL_INDEX = 2;
+    private static final int RIGHT_KNIGHT_COL_INDEX = 7;
+
+    private static final int LEFT_BISHOP_COL_INDEX = 3;
+    private static final int RIGHT_BISHOP_COL_INDEX = 6;
+
+    private static final int QUEEN_COL_INDEX = 4;
+    private static final int KING_COL_INDEX = 5;
+
     private ChessPiece[][] chessBoard;
 
-
-    private void setupBackRow(String color) {
-
+    private void setupExecutiveRow(int rowIndex, ChessGame.TeamColor teamColor) {
+        addPiece(new ChessPosition(rowIndex, LEFT_ROOK_COL_INDEX), new ChessPiece(teamColor, ChessPiece.PieceType.ROOK));
+        addPiece(new ChessPosition(rowIndex, LEFT_KNIGHT_COL_INDEX), new ChessPiece(teamColor, ChessPiece.PieceType.KNIGHT));
+        addPiece(new ChessPosition(rowIndex, LEFT_BISHOP_COL_INDEX), new ChessPiece(teamColor, ChessPiece.PieceType.BISHOP));
+        addPiece(new ChessPosition(rowIndex, QUEEN_COL_INDEX), new ChessPiece(teamColor, ChessPiece.PieceType.QUEEN));
+        addPiece(new ChessPosition(rowIndex, KING_COL_INDEX), new ChessPiece(teamColor, ChessPiece.PieceType.KING));
+        addPiece(new ChessPosition(rowIndex, RIGHT_BISHOP_COL_INDEX), new ChessPiece(teamColor, ChessPiece.PieceType.BISHOP));
+        addPiece(new ChessPosition(rowIndex, RIGHT_KNIGHT_COL_INDEX), new ChessPiece(teamColor, ChessPiece.PieceType.KNIGHT));
+        addPiece(new ChessPosition(rowIndex, RIGHT_ROOK_COL_INDEX), new ChessPiece(teamColor, ChessPiece.PieceType.ROOK));
     }
-    private void setupChessBoard() {
-        this.chessBoard = new ChessPiece[8][8];
-        this.chessBoard.add(setUpBackRow)
 
+    private void setupPawnRow(int rowIndex, ChessGame.TeamColor teamColor) {
+        for (int i = 0; i < CHESS_BOARD_LENGTH; i++) {
+            addPiece(new ChessPosition(rowIndex, i), new ChessPiece(teamColor, ChessPiece.PieceType.PAWN));
+        }
+    }
+
+    private void setupChessBoard() {
+        this.chessBoard = new ChessPiece[CHESS_BOARD_LENGTH][CHESS_BOARD_LENGTH];
+        setupExecutiveRow(BACK_EXECUTIVE_ROW_INDEX, ChessGame.TeamColor.BLACK);
+        setupPawnRow(BACK_PAWN_ROW_INDEX, ChessGame.TeamColor.BLACK);
+        setupPawnRow(FRONT_PAWN_ROW_INDEX, ChessGame.TeamColor.WHITE);
+        setupExecutiveRow(FRONT_EXECUTIVE_ROW_INDEX, ChessGame.TeamColor.WHITE);
     }
 
     public ChessBoard() {
+        setupChessBoard();
     }
 
     /**
