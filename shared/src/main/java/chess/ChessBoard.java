@@ -10,15 +10,14 @@ import java.util.ArrayList;
  */
 public class ChessBoard {
     private static int CHESS_BOARD_LENGTH = 8;
-    private ArrayList<ArrayList<chessPiece>> chessBoard;
+    private ChessPiece[][] chessBoard;
 
 
     private void setupBackRow(String color) {
 
     }
     private void setupChessBoard() {
-        this.chessBoard = new ArrayList<>();
-
+        this.chessBoard = new ChessPiece[8][8];
         this.chessBoard.add(setUpBackRow)
 
     }
@@ -33,8 +32,10 @@ public class ChessBoard {
      * @param piece    the piece to add
      */
     public void addPiece(ChessPosition position, ChessPiece piece) {
+        int modifiedCol = position.getColumn() - 1;
+        int modifiedRow = position.getRow() - 1;
 
-
+        this.chessBoard[modifiedRow][modifiedCol] = piece;
     }
 
     /**
@@ -45,7 +46,10 @@ public class ChessBoard {
      * position
      */
     public ChessPiece getPiece(ChessPosition position) {
-        throw new RuntimeException("Not implemented");
+        int modifiedCol = position.getColumn() - 1;
+        int modifiedRow = position.getRow() - 1;
+
+        return this.chessBoard[modifiedRow][modifiedCol];
     }
 
     /**
@@ -53,6 +57,6 @@ public class ChessBoard {
      * (How the game of chess normally starts)
      */
     public void resetBoard() {
-        throw new RuntimeException("Not implemented");
+        setupChessBoard();
     }
 }
