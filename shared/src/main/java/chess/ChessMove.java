@@ -7,23 +7,30 @@ package chess;
  * signature of the existing methods.
  */
 public class ChessMove {
+    private final ChessPosition chessStartPosition;
+    private final ChessPosition chessEndPosition;
+    private final ChessPiece.PieceType chessPromotionPiece;
+
 
     public ChessMove(ChessPosition startPosition, ChessPosition endPosition,
                      ChessPiece.PieceType promotionPiece) {
+        this.chessStartPosition = startPosition;
+        this.chessEndPosition = endPosition;
+        this.chessPromotionPiece = promotionPiece;
     }
 
     /**
      * @return ChessPosition of starting location
      */
     public ChessPosition getStartPosition() {
-        throw new RuntimeException("Not implemented");
+        return this.chessStartPosition;
     }
 
     /**
      * @return ChessPosition of ending location
      */
     public ChessPosition getEndPosition() {
-        throw new RuntimeException("Not implemented");
+        return this.chessEndPosition;
     }
 
     /**
@@ -33,6 +40,6 @@ public class ChessMove {
      * @return Type of piece to promote a pawn to, or null if no promotion
      */
     public ChessPiece.PieceType getPromotionPiece() {
-        throw new RuntimeException("Not implemented");
+        return this.chessPromotionPiece;
     }
 }
