@@ -110,8 +110,6 @@ public class ChessPiece {
         incrementerCheck(INCREMENT_NEGATIVE, INCREMENT_NEGATIVE, board, myPosition);
     }
 
-
-
     private void horizontalVerticalCheck(ChessBoard board, ChessPosition myPosition) {
         incrementerCheck(NO_INCREMENT, INCREMENT_POSITIVE, board, myPosition);
         incrementerCheck(NO_INCREMENT, INCREMENT_NEGATIVE, board, myPosition);
@@ -133,11 +131,26 @@ public class ChessPiece {
         validationCheck(position_x - KNIGHT_SECONDARY_MOVEMENT, position_y - KNIGHT_PRIMARY_MOVEMENT, board, myPosition);
     }
 
+    private void kingCheck(ChessBoard board, ChessPosition myPosition) {
+        int position_y = myPosition.getRow();
+        int position_x = myPosition.getColumn();
+
+        validationCheck(position_x, position_y + INCREMENT_POSITIVE, board, myPosition);
+        validationCheck(position_x, position_y + INCREMENT_NEGATIVE, board, myPosition);
+        validationCheck(position_x + INCREMENT_POSITIVE, position_y, board, myPosition);
+        validationCheck(position_x + INCREMENT_NEGATIVE, position_y, board, myPosition);
+        validationCheck(position_x + INCREMENT_POSITIVE, position_y + INCREMENT_POSITIVE, board, myPosition);
+        validationCheck(position_x + INCREMENT_POSITIVE, position_y + INCREMENT_NEGATIVE, board, myPosition);
+        validationCheck(position_x + INCREMENT_NEGATIVE, position_y + INCREMENT_POSITIVE, board, myPosition);
+        validationCheck(position_x + INCREMENT_NEGATIVE, position_y + INCREMENT_NEGATIVE, board, myPosition);
+    }
+
     public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
         this.possibleMoves.clear();
 
         switch (this.chessPieceType) {
             case PieceType.KING:
+                kingCheck(board, myPosition);
 
                 break;
 
