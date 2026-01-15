@@ -29,6 +29,12 @@ public class TestUtilities {
         expected.sort(comparator);
         actual.sort(comparator);
 
+        for (int i = 0; i < expected.size(); i++) {
+            System.out.println("CHECK: " + i);
+            System.out.println(expected.get(i).toString());
+            System.out.println(actual.get(i).toString());
+        }
+
         Assertions.assertEquals(expected, actual, "Wrong moves");
     }
 

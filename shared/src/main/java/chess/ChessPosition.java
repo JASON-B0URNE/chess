@@ -7,12 +7,12 @@ package chess;
  * signature of the existing methods.
  */
 public class ChessPosition {
-    private int piece_row;
-    private int piece_col;
+    private final int row;
+    private final int col;
 
     public ChessPosition(int row, int col) {
-        this.piece_row = row;
-        this.piece_col = col;
+        this.row = row;
+        this.col = col;
     }
 
     /**
@@ -20,7 +20,7 @@ public class ChessPosition {
      * 1 codes for the bottom row
      */
     public int getRow() {
-        return this.piece_row;
+        return this.row;
     }
 
     /**
@@ -28,6 +28,23 @@ public class ChessPosition {
      * 1 codes for the left row
      */
     public int getColumn() {
-        return this.piece_col;
+        return this.col;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        ChessPosition that = (ChessPosition) o;
+        return row == that.row && col == that.col;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = row;
+        result = 31 * result + col;
+        return result;
     }
 }

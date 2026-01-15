@@ -3,6 +3,7 @@ package chess;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.HashSet;
+import java.util.Objects;
 
 /**
  * Represents a single chess piece
@@ -20,13 +21,13 @@ public class ChessPiece {
     private static final int PAWN_START_MOVEMENT = 2;
 
 
-    private final ChessGame.TeamColor chessTeamColor;
-    private final PieceType chessPieceType;
+    private final ChessGame.TeamColor teamColor;
+    private final PieceType pieceType;
     private final Collection<ChessMove> possibleMoves = new HashSet<ChessMove>();;
 
     public ChessPiece(ChessGame.TeamColor pieceColor, ChessPiece.PieceType type) {
-        this.chessTeamColor = pieceColor;
-        this.chessPieceType = type;
+        this.teamColor = pieceColor;
+        this.pieceType = type;
     }
 
     /**
@@ -45,14 +46,14 @@ public class ChessPiece {
      * @return Which team this chess piece belongs to
      */
     public ChessGame.TeamColor getTeamColor() {
-        return this.chessTeamColor;
+        return this.teamColor;
     }
 
     /**
      * @return which type of chess piece this piece is
      */
     public PieceType getPieceType() {
-        return this.chessPieceType;
+        return this.pieceType;
     }
 
     /**
@@ -67,36 +68,71 @@ public class ChessPiece {
 
     }
 
-    private void incrementerCheck(int incrementX, int incrementY, ChessBoard board, ChessPosition myPosition) {
-        int position_y = myPosition.getRow();
-        int position_x = myPosition.getColumn();
+    private void incrementerCheck(int incrementRow, int incrementCol, ChessBoard board, ChessPosition myPosition) {
+        int row = myPosition.getRow();
+        int col = myPosition.getColumn();
 
-        ChessPosition currentPosition = new ChessPosition(position_x, position_y);
+        System.out.println("INITIAL CHECK - POS ROW: " + row + " POS COL: " + col);
 
-        position_x += incrementX;
+        row += incrementRow;
 
-        while (position_x < CHESS_BOARD_LENGTH && position_x > 0) {
-            position_y += incrementY;
+        while (row <= CHESS_BOARD_LENGTH && row > 0) {
+            col += incrementCol;
 
-            if (! validationCheck(position_x, position_y, board, currentPosition)) {
+            System.out.println("INCREMENTER CHECK - POS ROW: " + row + " POS COL: " + col);
+            if (! validationCheck(row, col, board, myPosition)) {
                 break;
             }
 
-            position_x += incrementX;
+            row += incrementRow;
         }
 
     }
 
-    private boolean validationCheck(int position_x, int position_y, ChessBoard board, ChessPosition currentPosition) {
-        if (position_y < CHESS_BOARD_LENGTH && position_y > 0) {
-            ChessPiece selectedPiece = board.getPiece(new ChessPosition(position_x, position_y));
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
-            if (selectedPiece == null || selectedPiece.getTeamColor() != this.chessTeamColor) {
-                ChessPosition finalPosition = new ChessPosition(position_x, position_y);
+        ChessPiece that = (ChessPiece) o;
+        return teamColor == that.teamColor && pieceType == that.pieceType && possibleMoves.equals(that.possibleMoves);
+    }
 
-                this.possibleMoves.add(new ChessMove(currentPosition, finalPosition, this.chessPieceType));
+    @Override
+    public int hashCode() {
+        int result = Objects.hashCode(teamColor);
+        result = 31 * result + Objects.hashCode(pieceType);
+        result = 31 * result + possibleMoves.hashCode();
+        return result;
+    }
+
+    private boolean validationCheck(int row, int col, ChessBoard board, ChessPosition currentPosition) {
+        System.out.println("CHECKED MOVE - POS ROW: " + row + " POS COL: " + col);
+        if (col <= CHESS_BOARD_LENGTH && col > 0 && row <= CHESS_BOARD_LENGTH && row > 0) {
+            ChessPosition finalPosition = new ChessPosition(row, col);
+            ChessPiece selectedPiece = board.getPiece(finalPosition);
+
+            if(selectedPiece != null) {
+                System.out.println(("CURRENT PIECE: " +this.teamColor));
+                System.out.println("SELECTED PIECE: " + selectedPiece.getTeamColor());
+            }
+
+            if (selectedPiece == null) {
+                System.out.println("ADDED MOVE - POS ROW: " + row + " POS COL: " + col);
+
+                this.possibleMoves.add(new ChessMove(currentPosition, finalPosition, null));
 
                 return true;
+            } else {
+                boolean killPiece = !Objects.equals(selectedPiece.getTeamColor(), this.teamColor);
+
+                if (killPiece) {
+                    System.out.println("ADDED MOVE - POS ROW: " + row + " POS COL: " + col);
+                    this.possibleMoves.add(new ChessMove(currentPosition, finalPosition, null));
+                }
+
+                return false;
             }
         }
 
@@ -105,7 +141,9 @@ public class ChessPiece {
 
     private void diagonalCheck(ChessBoard board, ChessPosition myPosition) {
         incrementerCheck(INCREMENT_POSITIVE, INCREMENT_POSITIVE, board, myPosition);
+        System.out.println("CHECK 2");
         incrementerCheck(INCREMENT_POSITIVE, INCREMENT_NEGATIVE, board, myPosition);
+        System.out.println("CHECK 3");
         incrementerCheck(INCREMENT_NEGATIVE, INCREMENT_POSITIVE, board, myPosition);
         incrementerCheck(INCREMENT_NEGATIVE, INCREMENT_NEGATIVE, board, myPosition);
     }
@@ -118,37 +156,38 @@ public class ChessPiece {
     }
 
     private void knightCheck(ChessBoard board, ChessPosition myPosition) {
-        int position_y = myPosition.getRow();
-        int position_x = myPosition.getColumn();
+        int row = myPosition.getRow();
+        int col = myPosition.getColumn();
+        System.out.println("KNIGHT POSITION - ROW: " + row + " COL: " + col);
 
-        validationCheck(position_x + KNIGHT_PRIMARY_MOVEMENT, position_y + KNIGHT_SECONDARY_MOVEMENT, board, myPosition);
-        validationCheck(position_x + KNIGHT_PRIMARY_MOVEMENT, position_y - KNIGHT_SECONDARY_MOVEMENT, board, myPosition);
-        validationCheck(position_x - KNIGHT_PRIMARY_MOVEMENT, position_y + KNIGHT_SECONDARY_MOVEMENT, board, myPosition);
-        validationCheck(position_x - KNIGHT_PRIMARY_MOVEMENT, position_y - KNIGHT_SECONDARY_MOVEMENT, board, myPosition);
-        validationCheck(position_x + KNIGHT_SECONDARY_MOVEMENT, position_y + KNIGHT_PRIMARY_MOVEMENT, board, myPosition);
-        validationCheck(position_x - KNIGHT_SECONDARY_MOVEMENT, position_y + KNIGHT_PRIMARY_MOVEMENT, board, myPosition);
-        validationCheck(position_x + KNIGHT_SECONDARY_MOVEMENT, position_y - KNIGHT_PRIMARY_MOVEMENT, board, myPosition);
-        validationCheck(position_x - KNIGHT_SECONDARY_MOVEMENT, position_y - KNIGHT_PRIMARY_MOVEMENT, board, myPosition);
+        validationCheck(row + KNIGHT_PRIMARY_MOVEMENT, col + KNIGHT_SECONDARY_MOVEMENT, board, myPosition);
+        validationCheck(row + KNIGHT_PRIMARY_MOVEMENT, col - KNIGHT_SECONDARY_MOVEMENT, board, myPosition);
+        validationCheck(row - KNIGHT_PRIMARY_MOVEMENT, col + KNIGHT_SECONDARY_MOVEMENT, board, myPosition);
+        validationCheck(row - KNIGHT_PRIMARY_MOVEMENT, col - KNIGHT_SECONDARY_MOVEMENT, board, myPosition);
+        validationCheck(row + KNIGHT_SECONDARY_MOVEMENT, col + KNIGHT_PRIMARY_MOVEMENT, board, myPosition);
+        validationCheck(row - KNIGHT_SECONDARY_MOVEMENT, col + KNIGHT_PRIMARY_MOVEMENT, board, myPosition);
+        validationCheck(row + KNIGHT_SECONDARY_MOVEMENT, col - KNIGHT_PRIMARY_MOVEMENT, board, myPosition);
+        validationCheck(row - KNIGHT_SECONDARY_MOVEMENT, col - KNIGHT_PRIMARY_MOVEMENT, board, myPosition);
     }
 
     private void kingCheck(ChessBoard board, ChessPosition myPosition) {
-        int position_y = myPosition.getRow();
-        int position_x = myPosition.getColumn();
+        int row = myPosition.getRow();
+        int col = myPosition.getColumn();
 
-        validationCheck(position_x, position_y + INCREMENT_POSITIVE, board, myPosition);
-        validationCheck(position_x, position_y + INCREMENT_NEGATIVE, board, myPosition);
-        validationCheck(position_x + INCREMENT_POSITIVE, position_y, board, myPosition);
-        validationCheck(position_x + INCREMENT_NEGATIVE, position_y, board, myPosition);
-        validationCheck(position_x + INCREMENT_POSITIVE, position_y + INCREMENT_POSITIVE, board, myPosition);
-        validationCheck(position_x + INCREMENT_POSITIVE, position_y + INCREMENT_NEGATIVE, board, myPosition);
-        validationCheck(position_x + INCREMENT_NEGATIVE, position_y + INCREMENT_POSITIVE, board, myPosition);
-        validationCheck(position_x + INCREMENT_NEGATIVE, position_y + INCREMENT_NEGATIVE, board, myPosition);
+        validationCheck(row, col + INCREMENT_POSITIVE, board, myPosition);
+        validationCheck(row, col + INCREMENT_NEGATIVE, board, myPosition);
+        validationCheck(row + INCREMENT_POSITIVE, col, board, myPosition);
+        validationCheck(row + INCREMENT_NEGATIVE, col, board, myPosition);
+        validationCheck(row + INCREMENT_POSITIVE, col + INCREMENT_POSITIVE, board, myPosition);
+        validationCheck(row + INCREMENT_POSITIVE, col + INCREMENT_NEGATIVE, board, myPosition);
+        validationCheck(row + INCREMENT_NEGATIVE, col + INCREMENT_POSITIVE, board, myPosition);
+        validationCheck(row + INCREMENT_NEGATIVE, col + INCREMENT_NEGATIVE, board, myPosition);
     }
 
     public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
         this.possibleMoves.clear();
 
-        switch (this.chessPieceType) {
+        switch (this.pieceType) {
             case PieceType.KING:
                 kingCheck(board, myPosition);
 
@@ -182,4 +221,5 @@ public class ChessPiece {
         }
         return this.possibleMoves;
     }
+
 }

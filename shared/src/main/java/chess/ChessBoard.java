@@ -2,6 +2,8 @@ package chess;
 
 //TODO: Include a remove piece function.
 
+import java.util.Arrays;
+
 /**
  * A chessboard that can hold and rearrange chess pieces.
  * <p>
@@ -29,7 +31,7 @@ public class ChessBoard {
     private static final int QUEEN_COL_INDEX = 4;
     private static final int KING_COL_INDEX = 5;
 
-    private ChessPiece[][] chessBoard;
+    private ChessPiece[][] board;
 
     private void setupExecutiveRow(int rowIndex, ChessGame.TeamColor teamColor) {
         addPiece(new ChessPosition(rowIndex, LEFT_ROOK_COL_INDEX), new ChessPiece(teamColor, ChessPiece.PieceType.ROOK));
@@ -43,21 +45,40 @@ public class ChessBoard {
     }
 
     private void setupPawnRow(int rowIndex, ChessGame.TeamColor teamColor) {
-        for (int i = 0; i < CHESS_BOARD_LENGTH; i++) {
+        for (int i = 1; i <= CHESS_BOARD_LENGTH; i++) {
             addPiece(new ChessPosition(rowIndex, i), new ChessPiece(teamColor, ChessPiece.PieceType.PAWN));
         }
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        ChessBoard that = (ChessBoard) o;
+        return Arrays.deepEquals(board, that.board);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.deepHashCode(board);
+    }
+
     private void setupChessBoard() {
-        this.chessBoard = new ChessPiece[CHESS_BOARD_LENGTH][CHESS_BOARD_LENGTH];
+        //this.board = new ChessPiece[CHESS_BOARD_LENGTH][CHESS_BOARD_LENGTH];
+        System.out.println("running");
+
         setupExecutiveRow(BACK_EXECUTIVE_ROW_INDEX, ChessGame.TeamColor.BLACK);
         setupPawnRow(BACK_PAWN_ROW_INDEX, ChessGame.TeamColor.BLACK);
         setupPawnRow(FRONT_PAWN_ROW_INDEX, ChessGame.TeamColor.WHITE);
         setupExecutiveRow(FRONT_EXECUTIVE_ROW_INDEX, ChessGame.TeamColor.WHITE);
+        String pieceType = this.board[0][1].getPieceType().toString();
+        //System.out.println(pieceType);
     }
 
     public ChessBoard() {
-        setupChessBoard();
+        this.board = new ChessPiece[CHESS_BOARD_LENGTH][CHESS_BOARD_LENGTH];
     }
 
     /**
@@ -70,7 +91,7 @@ public class ChessBoard {
         int modifiedCol = position.getColumn() - 1;
         int modifiedRow = position.getRow() - 1;
 
-        this.chessBoard[modifiedRow][modifiedCol] = piece;
+        this.board[modifiedRow][modifiedCol] = piece;
     }
 
     /**
@@ -84,7 +105,7 @@ public class ChessBoard {
         int modifiedCol = position.getColumn() - 1;
         int modifiedRow = position.getRow() - 1;
 
-        return this.chessBoard[modifiedRow][modifiedCol];
+        return this.board[modifiedRow][modifiedCol];
     }
 
     /**
