@@ -66,15 +66,12 @@ public class ChessBoard {
     }
 
     private void setupChessBoard() {
-        //this.board = new ChessPiece[CHESS_BOARD_LENGTH][CHESS_BOARD_LENGTH];
-        System.out.println("running");
+        this.board = new ChessPiece[CHESS_BOARD_LENGTH][CHESS_BOARD_LENGTH];
 
         setupExecutiveRow(BACK_EXECUTIVE_ROW_INDEX, ChessGame.TeamColor.BLACK);
         setupPawnRow(BACK_PAWN_ROW_INDEX, ChessGame.TeamColor.BLACK);
         setupPawnRow(FRONT_PAWN_ROW_INDEX, ChessGame.TeamColor.WHITE);
         setupExecutiveRow(FRONT_EXECUTIVE_ROW_INDEX, ChessGame.TeamColor.WHITE);
-        String pieceType = this.board[0][1].getPieceType().toString();
-        //System.out.println(pieceType);
     }
 
     public ChessBoard() {

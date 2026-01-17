@@ -19,13 +19,15 @@ public class ChessPiece {
     private static final int KNIGHT_PRIMARY_MOVEMENT = 2;
     private static final int KNIGHT_SECONDARY_MOVEMENT = 1;
     private static final int PAWN_START_MOVEMENT = 2;
-
+    private static final int FIRST_ROW_INDEX = 1;
+    private static final int LAST_ROW_INDEX = 8;
+    private static final int PAWN_SPECIAL_MOVE = 2;
 
     private final ChessGame.TeamColor teamColor;
     private final PieceType pieceType;
     private final Collection<ChessMove> possibleMoves = new HashSet<ChessMove>();;
 
-    public ChessPiece(ChessGame.TeamColor pieceColor, ChessPiece.PieceType type) {
+    public ChessPiece(ChessGame.TeamColor pieceColor, PieceType type) {
         this.teamColor = pieceColor;
         this.pieceType = type;
     }
@@ -72,15 +74,12 @@ public class ChessPiece {
         int row = myPosition.getRow();
         int col = myPosition.getColumn();
 
-        System.out.println("INITIAL CHECK - POS ROW: " + row + " POS COL: " + col);
-
         row += incrementRow;
 
         while (row <= CHESS_BOARD_LENGTH && row > 0) {
             col += incrementCol;
 
-            System.out.println("INCREMENTER CHECK - POS ROW: " + row + " POS COL: " + col);
-            if (! validationCheck(row, col, board, myPosition)) {
+            if (! validationCheck(row, col, board, myPosition, null, true)) {
                 break;
             }
 
@@ -107,29 +106,24 @@ public class ChessPiece {
         return result;
     }
 
-    private boolean validationCheck(int row, int col, ChessBoard board, ChessPosition currentPosition) {
-        System.out.println("CHECKED MOVE - POS ROW: " + row + " POS COL: " + col);
+    private boolean validationCheck(int row, int col, ChessBoard board, ChessPosition currentPosition, PieceType promotion, boolean killDirective) {
         if (col <= CHESS_BOARD_LENGTH && col > 0 && row <= CHESS_BOARD_LENGTH && row > 0) {
             ChessPosition finalPosition = new ChessPosition(row, col);
             ChessPiece selectedPiece = board.getPiece(finalPosition);
 
-            if(selectedPiece != null) {
-                System.out.println(("CURRENT PIECE: " +this.teamColor));
-                System.out.println("SELECTED PIECE: " + selectedPiece.getTeamColor());
+            if (selectedPiece == null && Objects.equals(PieceType.PAWN, this.pieceType) && killDirective) {
+                return false;
             }
 
             if (selectedPiece == null) {
-                System.out.println("ADDED MOVE - POS ROW: " + row + " POS COL: " + col);
-
-                this.possibleMoves.add(new ChessMove(currentPosition, finalPosition, null));
+                this.possibleMoves.add(new ChessMove(currentPosition, finalPosition, promotion));
 
                 return true;
             } else {
                 boolean killPiece = !Objects.equals(selectedPiece.getTeamColor(), this.teamColor);
 
-                if (killPiece) {
-                    System.out.println("ADDED MOVE - POS ROW: " + row + " POS COL: " + col);
-                    this.possibleMoves.add(new ChessMove(currentPosition, finalPosition, null));
+                if (killPiece && killDirective) {
+                    this.possibleMoves.add(new ChessMove(currentPosition, finalPosition, promotion));
                 }
 
                 return false;
@@ -141,9 +135,7 @@ public class ChessPiece {
 
     private void diagonalCheck(ChessBoard board, ChessPosition myPosition) {
         incrementerCheck(INCREMENT_POSITIVE, INCREMENT_POSITIVE, board, myPosition);
-        System.out.println("CHECK 2");
         incrementerCheck(INCREMENT_POSITIVE, INCREMENT_NEGATIVE, board, myPosition);
-        System.out.println("CHECK 3");
         incrementerCheck(INCREMENT_NEGATIVE, INCREMENT_POSITIVE, board, myPosition);
         incrementerCheck(INCREMENT_NEGATIVE, INCREMENT_NEGATIVE, board, myPosition);
     }
@@ -158,30 +150,77 @@ public class ChessPiece {
     private void knightCheck(ChessBoard board, ChessPosition myPosition) {
         int row = myPosition.getRow();
         int col = myPosition.getColumn();
-        System.out.println("KNIGHT POSITION - ROW: " + row + " COL: " + col);
 
-        validationCheck(row + KNIGHT_PRIMARY_MOVEMENT, col + KNIGHT_SECONDARY_MOVEMENT, board, myPosition);
-        validationCheck(row + KNIGHT_PRIMARY_MOVEMENT, col - KNIGHT_SECONDARY_MOVEMENT, board, myPosition);
-        validationCheck(row - KNIGHT_PRIMARY_MOVEMENT, col + KNIGHT_SECONDARY_MOVEMENT, board, myPosition);
-        validationCheck(row - KNIGHT_PRIMARY_MOVEMENT, col - KNIGHT_SECONDARY_MOVEMENT, board, myPosition);
-        validationCheck(row + KNIGHT_SECONDARY_MOVEMENT, col + KNIGHT_PRIMARY_MOVEMENT, board, myPosition);
-        validationCheck(row - KNIGHT_SECONDARY_MOVEMENT, col + KNIGHT_PRIMARY_MOVEMENT, board, myPosition);
-        validationCheck(row + KNIGHT_SECONDARY_MOVEMENT, col - KNIGHT_PRIMARY_MOVEMENT, board, myPosition);
-        validationCheck(row - KNIGHT_SECONDARY_MOVEMENT, col - KNIGHT_PRIMARY_MOVEMENT, board, myPosition);
+        validationCheck(row + KNIGHT_PRIMARY_MOVEMENT, col + KNIGHT_SECONDARY_MOVEMENT, board, myPosition, null,true);
+        validationCheck(row + KNIGHT_PRIMARY_MOVEMENT, col - KNIGHT_SECONDARY_MOVEMENT, board, myPosition, null,true);
+        validationCheck(row - KNIGHT_PRIMARY_MOVEMENT, col + KNIGHT_SECONDARY_MOVEMENT, board, myPosition, null,true);
+        validationCheck(row - KNIGHT_PRIMARY_MOVEMENT, col - KNIGHT_SECONDARY_MOVEMENT, board, myPosition, null, true);
+        validationCheck(row + KNIGHT_SECONDARY_MOVEMENT, col + KNIGHT_PRIMARY_MOVEMENT, board, myPosition, null, true);
+        validationCheck(row - KNIGHT_SECONDARY_MOVEMENT, col + KNIGHT_PRIMARY_MOVEMENT, board, myPosition, null, true);
+        validationCheck(row + KNIGHT_SECONDARY_MOVEMENT, col - KNIGHT_PRIMARY_MOVEMENT, board, myPosition, null, true);
+        validationCheck(row - KNIGHT_SECONDARY_MOVEMENT, col - KNIGHT_PRIMARY_MOVEMENT, board, myPosition, null, true);
     }
 
     private void kingCheck(ChessBoard board, ChessPosition myPosition) {
         int row = myPosition.getRow();
         int col = myPosition.getColumn();
 
-        validationCheck(row, col + INCREMENT_POSITIVE, board, myPosition);
-        validationCheck(row, col + INCREMENT_NEGATIVE, board, myPosition);
-        validationCheck(row + INCREMENT_POSITIVE, col, board, myPosition);
-        validationCheck(row + INCREMENT_NEGATIVE, col, board, myPosition);
-        validationCheck(row + INCREMENT_POSITIVE, col + INCREMENT_POSITIVE, board, myPosition);
-        validationCheck(row + INCREMENT_POSITIVE, col + INCREMENT_NEGATIVE, board, myPosition);
-        validationCheck(row + INCREMENT_NEGATIVE, col + INCREMENT_POSITIVE, board, myPosition);
-        validationCheck(row + INCREMENT_NEGATIVE, col + INCREMENT_NEGATIVE, board, myPosition);
+        validationCheck(row, col + INCREMENT_POSITIVE, board, myPosition, null, true);
+        validationCheck(row, col + INCREMENT_NEGATIVE, board, myPosition, null, true);
+        validationCheck(row + INCREMENT_POSITIVE, col, board, myPosition, null, true);
+        validationCheck(row + INCREMENT_NEGATIVE, col, board, myPosition, null, true);
+        validationCheck(row + INCREMENT_POSITIVE, col + INCREMENT_POSITIVE, board, myPosition, null, true);
+        validationCheck(row + INCREMENT_POSITIVE, col + INCREMENT_NEGATIVE, board, myPosition, null, true);
+        validationCheck(row + INCREMENT_NEGATIVE, col + INCREMENT_POSITIVE, board, myPosition, null, true);
+        validationCheck(row + INCREMENT_NEGATIVE, col + INCREMENT_NEGATIVE, board, myPosition, null, true);
+    }
+
+    private void pawnPromotion(int row, int col, int rowIncrementer, ChessBoard board, ChessPosition myPosition) {
+        pawnPossibleMoves(row, col, rowIncrementer, board, myPosition, PieceType.QUEEN);
+        pawnPossibleMoves(row, col, rowIncrementer, board, myPosition, PieceType.ROOK);
+        pawnPossibleMoves(row, col, rowIncrementer, board, myPosition, PieceType.BISHOP);
+        pawnPossibleMoves(row, col, rowIncrementer, board, myPosition, PieceType.KNIGHT);
+    }
+
+    private void pawnPossibleMoves(int row, int col, int rowIncrementer, ChessBoard board, ChessPosition myPosition, PieceType promotion) {
+        validationCheck(row + rowIncrementer, col, board, myPosition, promotion, false);
+        validationCheck(row + rowIncrementer, col + INCREMENT_POSITIVE, board, myPosition, promotion, true);
+        validationCheck(row + rowIncrementer, col + INCREMENT_NEGATIVE, board, myPosition, promotion, true);
+    }
+
+    private boolean pawnSpecialMoves(int startRow, int endRow, int row, int col, int rowIncrementer, ChessBoard board, ChessPosition myPosition) {
+        ChessPosition testPosition = new ChessPosition(row + rowIncrementer, col);
+        ChessPiece selectedPiece = board.getPiece(testPosition);
+
+        if (row == startRow) {
+            if (selectedPiece == null) {
+                validationCheck(row + (rowIncrementer * PAWN_SPECIAL_MOVE), col, board, myPosition, null, false);
+            }
+        } else if (row == endRow) {
+            pawnPromotion(row, col, rowIncrementer, board, myPosition);
+            return false;
+        }
+        return true;
+    }
+
+    private void pawnCheck(ChessBoard board, ChessPosition myPosition) {
+        int row = myPosition.getRow();
+        int col = myPosition.getColumn();
+
+        int rowIncrementer;
+        boolean continueMoves;
+
+        if (Objects.equals(teamColor, ChessGame.TeamColor.WHITE)) {
+            rowIncrementer = INCREMENT_POSITIVE;
+            continueMoves = pawnSpecialMoves(2,7,row,col, rowIncrementer, board, myPosition);
+        } else {
+            rowIncrementer = INCREMENT_NEGATIVE;
+            continueMoves = pawnSpecialMoves(7,2,row,col, rowIncrementer, board, myPosition);
+        }
+
+        if (continueMoves) {
+            pawnPossibleMoves(row, col, rowIncrementer, board, myPosition, null);
+        }
     }
 
     public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
@@ -198,6 +237,7 @@ public class ChessPiece {
                 break;
 
             case PieceType.PAWN:
+                pawnCheck(board, myPosition);
 
                 break;
 
