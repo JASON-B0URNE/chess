@@ -65,7 +65,7 @@ public class ChessPiece {
      *
      * @return Collection of valid moves
      */
-    
+
     private void incrementerCheck(int incrementRow, int incrementCol, ChessBoard board, ChessPosition myPosition) {
         int row = myPosition.getRow();
         int col = myPosition.getColumn();
@@ -129,18 +129,19 @@ public class ChessPiece {
         return false;
     }
 
-    private void diagonalCheck(ChessBoard board, ChessPosition myPosition) {
-        incrementerCheck(INCREMENT_POSITIVE, INCREMENT_POSITIVE, board, myPosition);
-        incrementerCheck(INCREMENT_POSITIVE, INCREMENT_NEGATIVE, board, myPosition);
-        incrementerCheck(INCREMENT_NEGATIVE, INCREMENT_POSITIVE, board, myPosition);
-        incrementerCheck(INCREMENT_NEGATIVE, INCREMENT_NEGATIVE, board, myPosition);
-    }
-
-    private void horizontalVerticalCheck(ChessBoard board, ChessPosition myPosition) {
-        incrementerCheck(NO_INCREMENT, INCREMENT_POSITIVE, board, myPosition);
-        incrementerCheck(NO_INCREMENT, INCREMENT_NEGATIVE, board, myPosition);
-        incrementerCheck(INCREMENT_POSITIVE, NO_INCREMENT, board, myPosition);
-        incrementerCheck(INCREMENT_NEGATIVE, NO_INCREMENT, board, myPosition);
+    private void directionalCheck(boolean diagonal, boolean straight, ChessBoard board, ChessPosition myPosition) {
+        if (diagonal) {
+            incrementerCheck(INCREMENT_POSITIVE, INCREMENT_POSITIVE, board, myPosition);
+            incrementerCheck(INCREMENT_POSITIVE, INCREMENT_NEGATIVE, board, myPosition);
+            incrementerCheck(INCREMENT_NEGATIVE, INCREMENT_POSITIVE, board, myPosition);
+            incrementerCheck(INCREMENT_NEGATIVE, INCREMENT_NEGATIVE, board, myPosition);
+        }
+        if (straight) {
+            incrementerCheck(NO_INCREMENT, INCREMENT_POSITIVE, board, myPosition);
+            incrementerCheck(NO_INCREMENT, INCREMENT_NEGATIVE, board, myPosition);
+            incrementerCheck(INCREMENT_POSITIVE, NO_INCREMENT, board, myPosition);
+            incrementerCheck(INCREMENT_NEGATIVE, NO_INCREMENT, board, myPosition);
+        }
     }
 
     private void knightCheck(ChessBoard board, ChessPosition myPosition) {
@@ -238,18 +239,17 @@ public class ChessPiece {
                 break;
 
             case PieceType.BISHOP:
-                diagonalCheck(board, myPosition);
+                directionalCheck(true, false, board, myPosition);
 
                 break;
 
             case PieceType.ROOK:
-                horizontalVerticalCheck(board, myPosition);
+                directionalCheck(false, true, board, myPosition);
 
                 break;
 
             case PieceType.QUEEN:
-                diagonalCheck(board, myPosition);
-                horizontalVerticalCheck(board, myPosition);
+                directionalCheck(true, true, board, myPosition);
 
                 break;
 
