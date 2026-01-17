@@ -65,11 +65,7 @@ public class ChessPiece {
      *
      * @return Collection of valid moves
      */
-
-    private void castlingCheck(ChessBoard board, Collection<ChessMove> moves, ChessPosition myPosition) {
-
-    }
-
+    
     private void incrementerCheck(int incrementRow, int incrementCol, ChessBoard board, ChessPosition myPosition) {
         int row = myPosition.getRow();
         int col = myPosition.getColumn();

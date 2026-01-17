@@ -1,7 +1,4 @@
 package chess;
-
-//TODO: Include a remove piece function.
-
 import java.util.Arrays;
 
 /**
