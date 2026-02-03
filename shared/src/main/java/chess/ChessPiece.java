@@ -25,7 +25,7 @@ public class ChessPiece {
 
     private final ChessGame.TeamColor teamColor;
     private final PieceType pieceType;
-    private final Collection<ChessMove> possibleMoves = new HashSet<ChessMove>();;
+    private final Collection<ChessMove> possibleMoves = new HashSet<ChessMove>();
 
     public ChessPiece(ChessGame.TeamColor pieceColor, PieceType type) {
         this.teamColor = pieceColor;

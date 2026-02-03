@@ -1,6 +1,7 @@
 package chess;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Objects;
 
 /**
@@ -12,8 +13,9 @@ import java.util.Objects;
 public class ChessGame {
     private TeamColor currentTeam;
     private ChessBoard board = new ChessBoard();
-    private boolean whiteInCheck;
-    private boolean blackInCheck;
+    private boolean inCheck;
+    private boolean inCheckmate;
+    private static final int CHESS_BOARD_LENGTH = 8;
 
     public ChessGame() {
         this.currentTeam = TeamColor.WHITE;
@@ -87,6 +89,37 @@ public class ChessGame {
         this.board.addPiece(endPosition, selectedPiece);
     }
 
+    private void kingCheck(TeamColor teamcolor) {
+        ChessPosition kingPosition = null;
+        Collection<ChessMove> enemyMoves = new HashSet<ChessMove>();
+        Collection<ChessPosition> enemyMovePosition = new HashSet<>();
+        Collection<ChessMove> kingMoves = new HashSet<>();
+        Collection<ChessPosition> kingMovePosition = new HashSet<>();
+
+        for (int row = 0; row < CHESS_BOARD_LENGTH; row++) {
+            for(int col = 0; col < CHESS_BOARD_LENGTH; col++) {
+                ChessPosition position = new ChessPosition(row, col);
+                ChessPiece selectedPiece = this.board.getPiece(position);
+
+                if (selectedPiece.getTeamColor() != teamcolor) {
+                    enemyMoves.addAll(selectedPiece.pieceMoves(this.board, position));
+                } else {
+                    if (selectedPiece.getPieceType() == ChessPiece.PieceType.KING) {
+                        kingPosition = position;
+                    }
+                }
+            }
+        }
+        for (ChessMove move : enemyMoves) {
+            enemyMovePosition.add(move.getEndPosition());
+        }
+
+        kingMoves = this.board.getPiece(kingPosition).pieceMoves(this.board, kingPosition);
+        for (ChessMove move : kingMoves) {
+            kingMovePosition.add(move.getEndPosition());
+        }
+    }
+
     /**
      * Determines if the given team is in check
      *
@@ -94,11 +127,7 @@ public class ChessGame {
      * @return True if the specified team is in check
      */
     public boolean isInCheck(TeamColor teamColor) {
-        if (teamColor == TeamColor.BLACK) {
-            return this.blackInCheck;
-        } else {
-            return this.whiteInCheck;
-        }
+        return inCheck;
     }
 
     /**
