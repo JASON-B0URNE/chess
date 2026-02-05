@@ -32,20 +32,6 @@ public class ChessPiece {
         this.pieceType = type;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        ChessPiece that = (ChessPiece) o;
-        return teamColor == that.teamColor && pieceType == that.pieceType && Objects.equals(possibleMoves, that.possibleMoves);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(teamColor, pieceType, possibleMoves);
-    }
-
     /**
      * The various different chess piece options
      */
@@ -252,5 +238,19 @@ public class ChessPiece {
 
         }
         return this.possibleMoves;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ChessPiece that = (ChessPiece) o;
+        return teamColor == that.teamColor && pieceType == that.pieceType;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(teamColor, pieceType, possibleMoves);
     }
 }

@@ -54,28 +54,21 @@ public class ChessGame {
         Collection<ChessMove> safeMoves = new HashSet<>();
 
         if (selectedPiece != null) {
-            System.out.println("Piece: " + selectedPiece);
             TeamColor color = selectedPiece.getTeamColor();
             Collection<ChessMove> possibleMoves = new ArrayList<>(selectedPiece.pieceMoves(this.board, startPosition));
 
-            ChessBoard copyBoard = getBoard().clone();
-            System.out.println("possible moves: " + possibleMoves);
+            ChessBoard copyBoard = getBoard().copy();
             possibleMoves.forEach(x -> {
-                System.out.println("What?");
-                ChessBoard testBoard = copyBoard.clone();
+                ChessBoard testBoard = copyBoard.copy();
                 movement(testBoard, x);
                 CheckResult result = generateMoves(testBoard, color);
-                System.out.println("result: " + result.enemyPositions);
                 if (!result.enemyPositions.contains(result.kingPosition)) {
-                    System.out.println("WHAT IS HAPPENING");
                     safeMoves.add(x);
                 }
             });
-            this.board = copyBoard.clone();
-            System.out.println(safeMoves);
+            this.board = copyBoard.copy();
 
             if (safeMoves.isEmpty()) {
-                System.out.println("hello");
             }
 
             return safeMoves;
@@ -153,15 +146,12 @@ public class ChessGame {
                     if (Objects.equals(selectedPiece.getPieceType(), ChessPiece.PieceType.PAWN)) {
                         Collection<ChessMove> pawnMoves = board.getPiece(position).pieceMoves(this.board, position);
                         pawnMoves.removeIf(x ->
-                                x.getStartPosition().getRow() + 1 == x.getEndPosition().getRow() ||
-                                        x.getStartPosition().getRow() - 1 == x.getEndPosition().getRow()
+                                x.getStartPosition().getColumn() == x.getEndPosition().getColumn()
                         );
                         enemyMoves.addAll(pawnMoves);
                         continue;
                     }
-                    enemyMoves.addAll(
-                            board.getPiece(position).pieceMoves(board, position)
-                    );
+                    enemyMoves.addAll(board.getPiece(position).pieceMoves(board, position));
                 } else {
                     if (Objects.equals(selectedPiece.getPieceType(), ChessPiece.PieceType.KING)) {
                         kingPosition = position;
@@ -189,13 +179,12 @@ public class ChessGame {
             return result.teamMoves;
         }
 
-        ChessBoard copyBoard = getBoard().clone();
+        ChessBoard copyBoard = getBoard().copy();
 
         Collection<ChessMove> safeMoves = new HashSet<>();
 
         teamMoves.forEach(x -> {
-            System.out.println("What?");
-            ChessBoard testBoard = copyBoard.clone();
+            ChessBoard testBoard = copyBoard.copy();
             movement(testBoard,x);
             CheckResult testResult = generateMoves(testBoard, teamColor);
 

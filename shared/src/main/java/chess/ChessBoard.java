@@ -48,20 +48,6 @@ public class ChessBoard implements Cloneable {
         }
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        ChessBoard that = (ChessBoard) o;
-        return Objects.deepEquals(board, that.board);
-    }
-
-    @Override
-    public int hashCode() {
-        return Arrays.deepHashCode(board);
-    }
-
     private void setupChessBoard() {
         this.board = new ChessPiece[CHESS_BOARD_LENGTH][CHESS_BOARD_LENGTH];
 
@@ -110,10 +96,8 @@ public class ChessBoard implements Cloneable {
         setupChessBoard();
     }
 
-    @Override
-    public ChessBoard clone() {
-        try {
-            ChessBoard clone = (ChessBoard) super.clone();
+    public ChessBoard copy() {
+            ChessBoard clone = new ChessBoard();
             for (int row = 0; row < 8; row++) {
                 for (int col = 0; col < 8; col ++) {
                     ChessPiece selectedPiece = this.board[row][col];
@@ -122,14 +106,27 @@ public class ChessBoard implements Cloneable {
                         clone.board[row][col] = null;
                     } else {
                         clone.board[row][col] = new ChessPiece(selectedPiece.getTeamColor(), selectedPiece.getPieceType());
+//                        clone.board[row][col] = selectedPiece;
                     }
 
                 }
             }
 
             return clone;
-        } catch (CloneNotSupportedException e) {
-            throw new RuntimeException(e);
+
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) {
+            return false;
         }
+        ChessBoard that = (ChessBoard) o;
+        return Objects.deepEquals(board, that.board);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.deepHashCode(board);
     }
 }
