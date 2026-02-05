@@ -11,7 +11,7 @@ import java.util.Objects;
  * Note: You can add to this class, but you may not alter
  * signature of the existing methods.
  */
-public class ChessPiece {
+public class ChessPiece implements Cloneable {
     private static final int CHESS_BOARD_LENGTH = 8;
     private static final int NO_INCREMENT = 0;
     private static final int INCREMENT_POSITIVE = 1;
@@ -258,4 +258,15 @@ public class ChessPiece {
         return this.possibleMoves;
     }
 
+    @Override
+    public ChessPiece clone() {
+        try {
+            ChessPiece clone = (ChessPiece) super.clone();
+
+
+            return clone;
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

@@ -7,7 +7,7 @@ import java.util.Arrays;
  * Note: You can add to this class, but you may not alter
  * signature of the existing methods.
  */
-public class ChessBoard {
+public class ChessBoard implements Cloneable {
     private static final int CHESS_BOARD_LENGTH = 8;
 
     private static final int FRONT_EXECUTIVE_ROW_INDEX = 1;
@@ -108,5 +108,19 @@ public class ChessBoard {
      */
     public void resetBoard() {
         setupChessBoard();
+    }
+
+    @Override
+    public ChessBoard clone() {
+        try {
+            ChessBoard clone = (ChessBoard) super.clone();
+            for (int row = 0; row < 8; row++) {
+                clone.board[row] = Arrays.copyOf(this.board[row], this.board[row].length);
+            }
+
+            return clone;
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -1,8 +1,6 @@
 package chess;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * For a class that can manage a chess game, making moves on a board
@@ -16,6 +14,10 @@ public class ChessGame {
     private boolean inCheck;
     private boolean inCheckmate;
     private static final int CHESS_BOARD_LENGTH = 8;
+    private ChessPosition kingPosition;
+    private Collection<ChessMove> teamMoves;
+    private Collection<ChessMove> enemyMoves;
+    private Collection<ChessPosition> enemyPositions;
 
     public ChessGame() {
         this.currentTeam = TeamColor.WHITE;
@@ -77,7 +79,7 @@ public class ChessGame {
 
         Collection<ChessMove> validMoves = validMoves(startPosition);
 
-        if (!validMoves.contains(move)) {
+        if (validMoves == null || !validMoves.contains(move) || (!Objects.equals(selectedPiece.getTeamColor(), this.currentTeam))) {
             throw new InvalidMoveException("Invalid Move");
         }
 
@@ -87,37 +89,97 @@ public class ChessGame {
 
         this.board.addPiece(startPosition, null);
         this.board.addPiece(endPosition, selectedPiece);
+
+        if (this.currentTeam == TeamColor.BLACK) {
+            this.currentTeam = TeamColor.WHITE;
+        } else {
+            this.currentTeam = TeamColor.BLACK;
+        }
     }
 
-    private void kingCheck(TeamColor teamcolor) {
+    private CheckResult generateMoves(TeamColor teamColor) {
+        Collection<ChessMove>enemyMoves = new HashSet<>();
         ChessPosition kingPosition = null;
-        Collection<ChessMove> enemyMoves = new HashSet<ChessMove>();
-        Collection<ChessPosition> enemyMovePosition = new HashSet<>();
-        Collection<ChessMove> kingMoves = new HashSet<>();
-        Collection<ChessPosition> kingMovePosition = new HashSet<>();
+        Collection<ChessPosition>enemyPositions = new HashSet<>();
+        Collection<ChessMove>teamMoves = new HashSet<>();
 
-        for (int row = 0; row < CHESS_BOARD_LENGTH; row++) {
-            for(int col = 0; col < CHESS_BOARD_LENGTH; col++) {
+        for (int row = 1; row <= CHESS_BOARD_LENGTH; row++) {
+            for (int col = 1; col <= CHESS_BOARD_LENGTH; col++) {
                 ChessPosition position = new ChessPosition(row, col);
                 ChessPiece selectedPiece = this.board.getPiece(position);
 
-                if (selectedPiece.getTeamColor() != teamcolor) {
-                    enemyMoves.addAll(selectedPiece.pieceMoves(this.board, position));
+                if (selectedPiece == null) {
+                    continue;
+                }
+
+                if (!Objects.equals(selectedPiece.getTeamColor(), teamColor)) {
+                    if (Objects.equals(selectedPiece.getPieceType(), ChessPiece.PieceType.PAWN)) {
+                        Collection<ChessMove> pawnMoves = validMoves(position);
+                        pawnMoves.removeIf(x ->
+                                x.getStartPosition().getRow() + 1 == x.getEndPosition().getRow() ||
+                                        x.getStartPosition().getRow() - 1 == x.getEndPosition().getRow()
+                        );
+                        enemyMoves.addAll(pawnMoves);
+                        continue;
+                    }
+                    enemyMoves.addAll(validMoves(position));
                 } else {
-                    if (selectedPiece.getPieceType() == ChessPiece.PieceType.KING) {
+                    if (Objects.equals(selectedPiece.getPieceType(), ChessPiece.PieceType.KING)) {
                         kingPosition = position;
+                    } else {
+                        teamMoves.addAll(validMoves(position));
                     }
                 }
             }
         }
+
         for (ChessMove move : enemyMoves) {
-            enemyMovePosition.add(move.getEndPosition());
+            enemyPositions.add(move.getEndPosition());
         }
 
-        kingMoves = this.board.getPiece(kingPosition).pieceMoves(this.board, kingPosition);
-        for (ChessMove move : kingMoves) {
-            kingMovePosition.add(move.getEndPosition());
+        return new CheckResult(enemyPositions, kingPosition, enemyMoves, teamMoves);
+    }
+
+    private void kingCheck(TeamColor teamColor) {
+        CheckResult result = generateMoves(teamColor);
+
+        if (result.enemyPositions.contains(result.kingPosition)) {
+            return;
         }
+
+        ChessBoard copyBoard = getBoard().clone();
+
+        Collection<ChessMove> safeTeamMoves = new HashSet<>();
+        Collection<ChessMove> safeKingMoves = new HashSet<>();
+
+        Collection<ChessMove> kingMoves = validMoves(result.kingPosition);
+        kingMoves.removeIf(x -> enemyPositions.contains(x.getEndPosition()));
+        kingMoves.forEach(x -> {
+            try {
+                makeMove(x);
+            } catch (InvalidMoveException e) {
+                return;
+            }
+
+            if (!isInCheck(teamColor)) {
+                safeKingMoves.add(x);
+            }
+
+            setBoard(copyBoard);
+        });
+        result.teamMoves.forEach(x -> {
+            try {
+                makeMove(x);
+            } catch (InvalidMoveException e) {
+                return;
+            }
+
+            if (!isInCheck(teamColor)) {
+                safeTeamMoves.add(x);
+            }
+
+            setBoard(copyBoard);
+        });
     }
 
     /**
@@ -127,7 +189,10 @@ public class ChessGame {
      * @return True if the specified team is in check
      */
     public boolean isInCheck(TeamColor teamColor) {
-        return inCheck;
+        CheckResult result = generateMoves(teamColor);
+
+
+        return result.enemyPositions.contains(result.kingPosition);
     }
 
     /**
@@ -137,7 +202,9 @@ public class ChessGame {
      * @return True if the specified team is in checkmate
      */
     public boolean isInCheckmate(TeamColor teamColor) {
-        throw new RuntimeException("Not implemented");
+        kingCheck(teamColor);
+
+        return this.inCheckmate;
     }
 
     /**
@@ -169,17 +236,41 @@ public class ChessGame {
         return this.board;
     }
 
+    private class CheckResult {
+        public Collection<ChessPosition>enemyPositions = new HashSet<>();
+        public ChessPosition kingPosition = null;
+        public Collection<ChessMove>enemyMoves = new HashSet<>();
+        public Collection<ChessMove>teamMoves = new HashSet<>();
+
+        public CheckResult(Collection<ChessPosition> pos1, ChessPosition pos2, Collection<ChessMove> pos3, Collection<ChessMove> pos4) {
+            this.enemyPositions = pos1;
+            this.kingPosition = pos2;
+            this.enemyMoves = pos3;
+            this.teamMoves = pos4;
+        }
+    }
+
+    private class CheckmateResult {
+        public Collection<ChessMove>safeKingMoves = new HashSet<>();
+        public Collection<ChessMove>safeTeamMoves = new HashSet<>();
+
+        public CheckmateResult(Collection<ChessMove> pos1, Collection<ChessMove> pos2) {
+            this.safeKingMoves = pos1;
+            this.safeTeamMoves = pos2;
+        }
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
         ChessGame chessGame = (ChessGame) o;
-        return currentTeam == chessGame.currentTeam && Objects.equals(board, chessGame.board);
+        return inCheck == chessGame.inCheck && inCheckmate == chessGame.inCheckmate && currentTeam == chessGame.currentTeam && Objects.equals(board, chessGame.board) && Objects.equals(kingPosition, chessGame.kingPosition) && Objects.equals(teamMoves, chessGame.teamMoves) && Objects.equals(enemyMoves, chessGame.enemyMoves) && Objects.equals(enemyPositions, chessGame.enemyPositions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(currentTeam, board);
+        return Objects.hash(currentTeam, board, inCheck, inCheckmate, kingPosition, teamMoves, enemyMoves, enemyPositions);
     }
 }
