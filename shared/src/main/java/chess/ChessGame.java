@@ -68,9 +68,6 @@ public class ChessGame {
             });
             this.board = copyBoard.copy();
 
-            if (safeMoves.isEmpty()) {
-            }
-
             return safeMoves;
         } else {
             return null;
@@ -251,27 +248,17 @@ public class ChessGame {
         return this.board;
     }
 
-    private class CheckResult {
-        public Collection<ChessPosition>enemyPositions = new HashSet<>();
-        public ChessPosition kingPosition = null;
-        public Collection<ChessMove>enemyMoves = new HashSet<>();
-        public Collection<ChessMove>teamMoves = new HashSet<>();
+    private static class CheckResult {
+        public Collection<ChessPosition>enemyPositions;
+        public ChessPosition kingPosition;
+        public Collection<ChessMove>enemyMoves;
+        public Collection<ChessMove>teamMoves;
 
         public CheckResult(Collection<ChessPosition> pos1, ChessPosition pos2, Collection<ChessMove> pos3, Collection<ChessMove> pos4) {
             this.enemyPositions = pos1;
             this.kingPosition = pos2;
             this.enemyMoves = pos3;
             this.teamMoves = pos4;
-        }
-    }
-
-    private class CheckmateResult {
-        public Collection<ChessMove>safeKingMoves = new HashSet<>();
-        public Collection<ChessMove>safeTeamMoves = new HashSet<>();
-
-        public CheckmateResult(Collection<ChessMove> pos1, Collection<ChessMove> pos2) {
-            this.safeKingMoves = pos1;
-            this.safeTeamMoves = pos2;
         }
     }
 
