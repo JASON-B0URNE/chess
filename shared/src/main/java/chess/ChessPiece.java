@@ -11,7 +11,7 @@ import java.util.Objects;
  * Note: You can add to this class, but you may not alter
  * signature of the existing methods.
  */
-public class ChessPiece implements Cloneable {
+public class ChessPiece {
     private static final int CHESS_BOARD_LENGTH = 8;
     private static final int NO_INCREMENT = 0;
     private static final int INCREMENT_POSITIVE = 1;
@@ -30,6 +30,20 @@ public class ChessPiece implements Cloneable {
     public ChessPiece(ChessGame.TeamColor pieceColor, PieceType type) {
         this.teamColor = pieceColor;
         this.pieceType = type;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ChessPiece that = (ChessPiece) o;
+        return teamColor == that.teamColor && pieceType == that.pieceType && Objects.equals(possibleMoves, that.possibleMoves);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(teamColor, pieceType, possibleMoves);
     }
 
     /**
@@ -82,24 +96,6 @@ public class ChessPiece implements Cloneable {
             row += incrementRow;
         }
 
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        ChessPiece that = (ChessPiece) o;
-        return teamColor == that.teamColor && pieceType == that.pieceType && possibleMoves.equals(that.possibleMoves);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = Objects.hashCode(teamColor);
-        result = 31 * result + Objects.hashCode(pieceType);
-        result = 31 * result + possibleMoves.hashCode();
-        return result;
     }
 
     private boolean validationCheck(int row, int col, ChessBoard board, ChessPosition currentPosition, PieceType promotion, boolean killDirective) {
@@ -256,17 +252,5 @@ public class ChessPiece implements Cloneable {
 
         }
         return this.possibleMoves;
-    }
-
-    @Override
-    public ChessPiece clone() {
-        try {
-            ChessPiece clone = (ChessPiece) super.clone();
-
-
-            return clone;
-        } catch (CloneNotSupportedException e) {
-            throw new RuntimeException(e);
-        }
     }
 }

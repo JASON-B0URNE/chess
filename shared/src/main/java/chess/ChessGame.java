@@ -12,10 +12,6 @@ public class ChessGame {
     private TeamColor currentTeam;
     private ChessBoard board = new ChessBoard();
     private static final int CHESS_BOARD_LENGTH = 8;
-    private ChessPiece piece;
-    private ChessMove move;
-    private ChessPosition position;
-    private ChessPiece.PieceType type;
 
     public ChessGame() {
         this.currentTeam = TeamColor.WHITE;
@@ -55,26 +51,32 @@ public class ChessGame {
      */
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
         ChessPiece selectedPiece = this.board.getPiece(startPosition);
+        Collection<ChessMove> safeMoves = new HashSet<>();
 
         if (selectedPiece != null) {
             System.out.println("Piece: " + selectedPiece);
             TeamColor color = selectedPiece.getTeamColor();
             Collection<ChessMove> possibleMoves = new ArrayList<>(selectedPiece.pieceMoves(this.board, startPosition));
-            Collection<ChessMove> safeMoves = new HashSet<>();
 
             ChessBoard copyBoard = getBoard().clone();
-
+            System.out.println("possible moves: " + possibleMoves);
             possibleMoves.forEach(x -> {
                 System.out.println("What?");
                 ChessBoard testBoard = copyBoard.clone();
                 movement(testBoard, x);
                 CheckResult result = generateMoves(testBoard, color);
+                System.out.println("result: " + result.enemyPositions);
                 if (!result.enemyPositions.contains(result.kingPosition)) {
+                    System.out.println("WHAT IS HAPPENING");
                     safeMoves.add(x);
                 }
             });
+            this.board = copyBoard.clone();
+            System.out.println(safeMoves);
 
-System.out.println(safeMoves);
+            if (safeMoves.isEmpty()) {
+                System.out.println("hello");
+            }
 
             return safeMoves;
         } else {
@@ -193,7 +195,7 @@ System.out.println(safeMoves);
 
         teamMoves.forEach(x -> {
             System.out.println("What?");
-            ChessBoard testBoard = copyBoard;
+            ChessBoard testBoard = copyBoard.clone();
             movement(testBoard,x);
             CheckResult testResult = generateMoves(testBoard, teamColor);
 
@@ -290,11 +292,11 @@ System.out.println(safeMoves);
             return false;
         }
         ChessGame chessGame = (ChessGame) o;
-        return currentTeam == chessGame.currentTeam && Objects.equals(board, chessGame.board) && Objects.equals(piece, chessGame.piece) && Objects.equals(move, chessGame.move) && Objects.equals(position, chessGame.position) && type == chessGame.type;
+        return currentTeam == chessGame.currentTeam && Objects.equals(board, chessGame.board);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(currentTeam, board, piece, move, position, type);
+        return Objects.hash(currentTeam, board);
     }
 }
