@@ -35,6 +35,11 @@ public class AuthDOA implements InterfaceDOA<AuthData> {
     }
 
     @Override
+    public Collection<AuthData> list() {
+        return null;
+    }
+
+    @Override
     public void delete(AuthData auth) {
         this.authTokens.remove(auth);
     }

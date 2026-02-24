@@ -38,4 +38,9 @@ public class UserDOA implements InterfaceDOA<UserData> {
         this.users = new HashSet<>();
     }
 
+    @Override
+    public Collection<UserData> list() {
+        return null;
+    }
+
 }
