@@ -40,6 +40,6 @@ public class GameDOA implements InterfaceDOA<GameData> {
 
     @Override
     public void replace(GameData data) {
-        this.games.set(data.gameID(), data);
+        this.games.set(data.gameID() - 1, data);
     }
 }

@@ -1,7 +1,6 @@
 package server;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import dataaccess.AuthDOA;
 import dataaccess.GameDOA;
 import dataaccess.InterfaceDOA;
@@ -11,8 +10,6 @@ import model.AuthData;
 import model.GameData;
 import model.UserData;
 import requests.JoinGame;
-import requests.Response;
-import services.gameService;
 
 import java.util.Collection;
 import java.util.Map;
@@ -122,11 +119,11 @@ public class Server {
 
                 GameData oldGame = gameDOA.get(null);
 
-                int gameID = 0;
+                int gameID = 1;
                 if (oldGame != null) {
                     gameID = oldGame.gameID() + 1;
                 }
-                System.out.print(serializer.toJson(Map.of("gameID", gameID)));
+
                 gameDOA.create(new GameData(gameID, null, null, newGame.gameName(), null));
                 ctx.status(200).result(serializer.toJson(Map.of("gameID", gameID)));
             })
