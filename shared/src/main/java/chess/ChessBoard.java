@@ -8,7 +8,7 @@ import java.util.Objects;
  * Note: You can add to this class, but you may not alter
  * signature of the existing methods.
  */
-public class ChessBoard implements Cloneable {
+public class ChessBoard {
     private static final int CHESS_BOARD_LENGTH = 8;
 
     private static final int FRONT_EXECUTIVE_ROW_INDEX = 1;
