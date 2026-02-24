@@ -45,7 +45,25 @@ public class Server {
                 ctx.status(200).result(serializer.toJson(session));
             })
             .post("/session", ctx -> {
+                UserData newUser = serializer.fromJson(ctx.body(), UserData.class);
+                UserData oldUser = UserDOA.get(newUser.username());
 
+                if (newUser.username() == null || newUser.password() == null ) {
+                    ctx.status(400).result(serializer.toJson(Map.of("message", "Error: bad request")));
+                    return;
+                }
+
+                if (oldUser == null || !newUser.password().equals(oldUser.password())) {
+                    ctx.status(401).result(serializer.toJson(Map.of("message", "Error: unauthorized")));
+                    return;
+                }
+
+                String authToken = UUID.randomUUID().toString();
+                AuthData session = new AuthData( authToken, newUser.username());
+
+                AuthDOA.create(session);
+
+                ctx.status(200).result(serializer.toJson(session));
             })
             .delete("/session", ctx -> {
 
