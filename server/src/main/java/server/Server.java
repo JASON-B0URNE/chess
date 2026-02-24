@@ -10,11 +10,15 @@ import io.javalin.*;
 import model.AuthData;
 import model.GameData;
 import model.UserData;
+import requests.JoinGame;
+import requests.Response;
+import services.gameService;
 
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Server {
     private final Javalin javalin;
@@ -29,6 +33,7 @@ public class Server {
             .delete("/db", ctx -> {
                 authDOA.clear();
                 userDOA.clear();
+                gameDOA.clear();
 
                 ctx.status(200).result(serializer.toJson(null));
             })
@@ -119,20 +124,60 @@ public class Server {
 
                 int gameID = 0;
                 if (oldGame != null) {
-                    gameID = newGame.gameID() + 1;
+                    gameID = oldGame.gameID() + 1;
                 }
-                System.out.print(gameID);
+                System.out.print(serializer.toJson(Map.of("gameID", gameID)));
                 gameDOA.create(new GameData(gameID, null, null, newGame.gameName(), null));
                 ctx.status(200).result(serializer.toJson(Map.of("gameID", gameID)));
             })
             .put("/game", ctx -> {
+                String authToken = ctx.header("Authorization");
+                AuthData session = authDOA.get(authToken);
 
+                if (session == null) {
+                    ctx.status(401).result(serializer.toJson(Map.of("message", "Error: unauthorized")));
+                    return;
+                }
+
+                JoinGame request = serializer.fromJson(ctx.body(), JoinGame.class);
+                if (request.gameID() < 0 || !(Objects.equals(request.playerColor(), "WHITE") || Objects.equals(request.playerColor(), "BLACK"))) {
+                    ctx.status(400).result(serializer.toJson(Map.of("message", "Error: bad request")));
+                    return;
+//                    return new Response(400, Map.of("message", "Error: bad request"));
+                }
+
+                Collection<GameData> games = gameDOA.list();
+
+                AtomicReference<GameData> game = new AtomicReference<>();
+
+                games.forEach( x -> {
+                    if (Objects.equals(x.gameID(), request.gameID())) {
+                        game.set(x);
+                    }
+                });
+
+                if (game.get() == null) {
+                    ctx.status(400).result(serializer.toJson(Map.of("message", "Error: bad request")));
+                    return;
+//                    return new Response(400, Map.of("message", "Error: unauthorized"));
+                }
+
+                if ((game.get().blackUsername() != null && Objects.equals(request.playerColor(), "BLACK")) ||
+                        (game.get().whiteUsername() != null && Objects.equals(request.playerColor(), "WHITE"))) {
+                    ctx.status(403).result(serializer.toJson(Map.of("message", "Error: already taken")));
+                    return;
+                }
+
+                if (Objects.equals(request.playerColor(), "BLACK")) {
+                    gameDOA.replace(new GameData(game.get().gameID(), game.get().whiteUsername(),
+                            session.username(), game.get().gameName(), game.get().game()));
+                } else {
+                    gameDOA.replace(new GameData(game.get().gameID(), session.username(),
+                            game.get().blackUsername(), game.get().gameName(), game.get().game()));
+                }
+                ctx.status(200).result(serializer.toJson(null));
+//                return new Response(200, null);
             })
-
-
-
-
-
         ;
     }
 

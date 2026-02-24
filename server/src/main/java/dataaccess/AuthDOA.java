@@ -21,7 +21,7 @@ public class AuthDOA implements InterfaceDOA<AuthData> {
 
         this.authTokens.forEach( x -> {
             if (Objects.equals(x.authToken(), authToken)) {
-                System.out.print("hello");
+                System.out.println("Got Here: ");
                 session.set(x);
             }
         });
@@ -37,6 +37,11 @@ public class AuthDOA implements InterfaceDOA<AuthData> {
     @Override
     public Collection<AuthData> list() {
         return null;
+    }
+
+    @Override
+    public void replace(AuthData data) {
+
     }
 
     @Override

@@ -1,6 +1,5 @@
 package dataaccess;
 
-import model.AuthData;
 import model.UserData;
 
 import java.util.Collection;
@@ -41,6 +40,11 @@ public class UserDOA implements InterfaceDOA<UserData> {
     @Override
     public Collection<UserData> list() {
         return null;
+    }
+
+    @Override
+    public void replace(UserData data) {
+
     }
 
 }

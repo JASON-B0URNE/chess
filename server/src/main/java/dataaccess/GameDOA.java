@@ -19,13 +19,13 @@ public class GameDOA implements InterfaceDOA<GameData> {
         if (games.isEmpty()) {
             return null;
         } else {
-            return games.getLast();
+            return games.get(games.size() - 1);
         }
     }
 
     @Override
-    public void delete(GameData data) {
-
+    public void delete(GameData game) {
+        this.games.remove(game);
     }
 
     @Override
@@ -36,5 +36,10 @@ public class GameDOA implements InterfaceDOA<GameData> {
     @Override
     public Collection<GameData> list() {
         return this.games;
+    }
+
+    @Override
+    public void replace(GameData data) {
+        this.games.set(data.gameID(), data);
     }
 }

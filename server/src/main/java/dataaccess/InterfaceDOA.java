@@ -1,6 +1,7 @@
 package dataaccess;
 
 import model.AuthData;
+import model.GameData;
 import model.UserData;
 
 import java.util.Collection;
@@ -12,4 +13,5 @@ public interface InterfaceDOA<T> {
     public void delete(T data);
     public void clear();
     public Collection<T> list();
+    void replace(T data);
 }

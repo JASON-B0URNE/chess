@@ -9,12 +9,12 @@ public record AuthData(String authToken, String username) {
             return false;
         }
         AuthData authData = (AuthData) o;
-        return Objects.equals(username, authData.username) && Objects.equals(authToken, authData.authToken);
+        return Objects.equals(username(), authData.username()) && Objects.equals(authToken(), authData.authToken());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(authToken, username);
+        return Objects.hash(authToken(), username());
     }
 }
 
