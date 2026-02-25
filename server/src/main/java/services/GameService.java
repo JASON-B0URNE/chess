@@ -5,6 +5,7 @@ import dataaccess.InterfaceDOA;
 import model.AuthData;
 import model.GameData;
 import model.UserData;
+import requests.CreateGame;
 import requests.JoinGame;
 import requests.Response;
 
@@ -24,19 +25,16 @@ public class GameService {
         this.gameDOA = gameDOA;
     }
 
-    public Response joinGame(io.javalin.http.Context ctx) {
+    public Response joinGame(JoinGame request) {
         var serializer = new Gson();
 
-        String authToken = ctx.header("Authorization");
-        AuthData session = authDOA.get(authToken);
+        AuthData session = authDOA.get(request.authToken());
 
         if (session == null) {
             return new Response(401, serializer.toJson(Map.of("message", "Error: unauthorized")));
         }
 
-        JoinGame request = serializer.fromJson(ctx.body(), JoinGame.class);
         if (request.gameID() < 0 || !(Objects.equals(request.playerColor(), "WHITE") || Objects.equals(request.playerColor(), "BLACK"))) {
-            ctx.status(400).result(serializer.toJson(Map.of("message", "Error: bad request")));
             return new Response(400, serializer.toJson(Map.of("message", "Error: bad request")));
         }
 
@@ -70,10 +68,9 @@ public class GameService {
         return new Response(200, "{}");
     }
 
-    public Response getGames(io.javalin.http.Context ctx) {
+    public Response getGames(String authToken) {
         var serializer = new Gson();
 
-        String authToken = ctx.header("Authorization");
         AuthData session = authDOA.get(authToken);
 
         if (session == null) {
@@ -86,17 +83,16 @@ public class GameService {
         return new Response(200, serializer.toJson(Map.of("games", games)));
     }
 
-    public Response createGame(io.javalin.http.Context ctx) {
+    public Response createGame(CreateGame request) {
         var serializer = new Gson();
 
-        String authToken = ctx.header("Authorization");
-        AuthData session = authDOA.get(authToken);
+        AuthData session = authDOA.get(request.authToken());
 
         if (session == null) {
             return new Response(401, serializer.toJson(Map.of("message", "Error: unauthorized")));
         }
 
-        GameData newGame = serializer.fromJson(ctx.body(), GameData.class);
+        GameData newGame = request.game();
 
         if (newGame.gameName() == null) {
             return new Response(400, serializer.toJson(Map.of("message", "Error: bad request")));

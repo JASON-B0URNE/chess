@@ -18,10 +18,9 @@ public class UserService {
         this.userDOA = userDOA;
     }
 
-    public Response createUser(io.javalin.http.Context ctx) {
+    public Response createUser(UserData newUser) {
         var serializer = new Gson();
 
-        UserData newUser = serializer.fromJson(ctx.body(), UserData.class);
         UserData oldUser = userDOA.get(newUser.username());
 
         if (newUser.username() == null || newUser.password() == null || newUser.email() == null) {

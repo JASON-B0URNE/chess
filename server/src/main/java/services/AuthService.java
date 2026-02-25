@@ -18,10 +18,9 @@ public class AuthService {
         this.userDOA = userDOA;
     }
 
-    public Response createSession(io.javalin.http.Context ctx) {
+    public Response createSession(UserData newUser) {
         var serializer = new Gson();
 
-        UserData newUser = serializer.fromJson(ctx.body(), UserData.class);
         UserData oldUser = userDOA.get(newUser.username());
 
         if (newUser.username() == null || newUser.password() == null ) {
@@ -40,10 +39,8 @@ public class AuthService {
         return new Response(200, serializer.toJson(session));
     }
 
-    public Response deleteSession(io.javalin.http.Context ctx) {
+    public Response deleteSession(String authToken) {
         var serializer = new Gson();
-
-        String authToken = ctx.header("Authorization");
 
         AuthData session = authDOA.get(authToken);
         if (session == null) {
