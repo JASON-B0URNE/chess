@@ -5,7 +5,7 @@ import dataaccess.InterfaceDOA;
 import model.AuthData;
 import model.GameData;
 import model.UserData;
-import requests.IntialJoinGame;
+import requests.JoinGame;
 import requests.Response;
 
 import java.util.Collection;
@@ -34,7 +34,7 @@ public class GameService {
             return new Response(401, serializer.toJson(Map.of("message", "Error: unauthorized")));
         }
 
-        IntialJoinGame request = serializer.fromJson(ctx.body(), IntialJoinGame.class);
+        JoinGame request = serializer.fromJson(ctx.body(), JoinGame.class);
         if (request.gameID() < 0 || !(Objects.equals(request.playerColor(), "WHITE") || Objects.equals(request.playerColor(), "BLACK"))) {
             ctx.status(400).result(serializer.toJson(Map.of("message", "Error: bad request")));
             return new Response(400, serializer.toJson(Map.of("message", "Error: bad request")));
