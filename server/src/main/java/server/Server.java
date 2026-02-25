@@ -10,6 +10,10 @@ import model.AuthData;
 import model.GameData;
 import model.UserData;
 import requests.JoinGame;
+import requests.Response;
+import services.AuthService;
+import services.GameService;
+import services.UserService;
 
 import java.util.Collection;
 import java.util.Map;
@@ -26,35 +30,21 @@ public class Server {
         InterfaceDOA<UserData> userDOA = new UserDOA();
         InterfaceDOA<GameData> gameDOA = new GameDOA();
 
+        AuthService authService = new AuthService(authDOA, userDOA, gameDOA);
+        UserService userService = new UserService(authDOA, userDOA, gameDOA);
+        GameService gameService = new GameService(authDOA, userDOA, gameDOA);
+
         javalin = Javalin.create(config -> {config.staticFiles.add("web");})
             .delete("/db", ctx -> {
                 authDOA.clear();
                 userDOA.clear();
                 gameDOA.clear();
 
-                ctx.status(200).result(serializer.toJson(null));
+                ctx.status(200).result("{}");
             })
             .post("/user", ctx -> {
-                UserData newUser = serializer.fromJson(ctx.body(), UserData.class);
-                UserData oldUser = userDOA.get(newUser.username());
-
-                if (newUser.username() == null || newUser.password() == null || newUser.email() == null) {
-                    ctx.status(400).result(serializer.toJson(Map.of("message", "Error: bad request")));
-                    return;
-                }
-
-                if (oldUser != null) {
-                    ctx.status(403).result(serializer.toJson(Map.of("message", "Error: already taken")));
-                    return;
-                }
-
-                userDOA.create(newUser);
-                String authToken = UUID.randomUUID().toString();
-                AuthData session = new AuthData( authToken, newUser.username());
-
-                authDOA.create(session);
-
-                ctx.status(200).result(serializer.toJson(session));
+                Response response = userService.createUser(ctx);
+                ctx.status(response.code()).result(response.json());
             })
             .post("/session", ctx -> {
                 UserData newUser = serializer.fromJson(ctx.body(), UserData.class);
@@ -90,90 +80,16 @@ public class Server {
                 ctx.status(200).result(serializer.toJson(null));
             })
             .get("/game", ctx -> {
-                String authToken = ctx.header("Authorization");
-                AuthData session = authDOA.get(authToken);
-
-                if (session == null) {
-                    ctx.status(401).result(serializer.toJson(Map.of("message", "Error: unauthorized")));
-                    return;
-                }
-
-                var games = gameDOA.list();
-                ctx.status(200).result(serializer.toJson(Map.of("games", games)));
+                Response response = gameService.getGames(ctx);
+                ctx.status(response.code()).result(response.json());
             })
             .post("/game", ctx -> {
-                String authToken = ctx.header("Authorization");
-                AuthData session = authDOA.get(authToken);
-
-                if (session == null) {
-                    ctx.status(401).result(serializer.toJson(Map.of("message", "Error: unauthorized")));
-                    return;
-                }
-
-                GameData newGame = serializer.fromJson(ctx.body(), GameData.class);
-
-                if (newGame.gameName() == null) {
-                    ctx.status(400).result(serializer.toJson(Map.of("message", "Error: bad request")));
-                    return;
-                }
-
-                GameData oldGame = gameDOA.get(null);
-
-                int gameID = 1;
-                if (oldGame != null) {
-                    gameID = oldGame.gameID() + 1;
-                }
-
-                gameDOA.create(new GameData(gameID, null, null, newGame.gameName(), null));
-                ctx.status(200).result(serializer.toJson(Map.of("gameID", gameID)));
+                Response response = gameService.createGame(ctx);
+                ctx.status(response.code()).result(response.json());
             })
             .put("/game", ctx -> {
-                String authToken = ctx.header("Authorization");
-                AuthData session = authDOA.get(authToken);
-
-                if (session == null) {
-                    ctx.status(401).result(serializer.toJson(Map.of("message", "Error: unauthorized")));
-                    return;
-                }
-
-                JoinGame request = serializer.fromJson(ctx.body(), JoinGame.class);
-                if (request.gameID() < 0 || !(Objects.equals(request.playerColor(), "WHITE") || Objects.equals(request.playerColor(), "BLACK"))) {
-                    ctx.status(400).result(serializer.toJson(Map.of("message", "Error: bad request")));
-                    return;
-//                    return new Response(400, Map.of("message", "Error: bad request"));
-                }
-
-                Collection<GameData> games = gameDOA.list();
-
-                AtomicReference<GameData> game = new AtomicReference<>();
-
-                games.forEach( x -> {
-                    if (Objects.equals(x.gameID(), request.gameID())) {
-                        game.set(x);
-                    }
-                });
-
-                if (game.get() == null) {
-                    ctx.status(400).result(serializer.toJson(Map.of("message", "Error: bad request")));
-                    return;
-//                    return new Response(400, Map.of("message", "Error: unauthorized"));
-                }
-
-                if ((game.get().blackUsername() != null && Objects.equals(request.playerColor(), "BLACK")) ||
-                        (game.get().whiteUsername() != null && Objects.equals(request.playerColor(), "WHITE"))) {
-                    ctx.status(403).result(serializer.toJson(Map.of("message", "Error: already taken")));
-                    return;
-                }
-
-                if (Objects.equals(request.playerColor(), "BLACK")) {
-                    gameDOA.replace(new GameData(game.get().gameID(), game.get().whiteUsername(),
-                            session.username(), game.get().gameName(), game.get().game()));
-                } else {
-                    gameDOA.replace(new GameData(game.get().gameID(), session.username(),
-                            game.get().blackUsername(), game.get().gameName(), game.get().game()));
-                }
-                ctx.status(200).result(serializer.toJson(null));
-//                return new Response(200, null);
+                Response response = gameService.joinGame(ctx);
+                ctx.status(response.code()).result(response.json());
             })
         ;
     }

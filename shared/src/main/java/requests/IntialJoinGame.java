@@ -2,7 +2,7 @@ package requests;
 
 import java.util.Objects;
 
-public record JoinGame(String username, String playerColor, int gameID) {
+public record IntialJoinGame(String playerColor, int gameID) {
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) {

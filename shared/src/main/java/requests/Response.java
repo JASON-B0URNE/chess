@@ -3,7 +3,7 @@ package requests;
 import java.util.Map;
 import java.util.Objects;
 
-public record Response(int code, Map<String, Object> json) {
+public record Response(int code, String json) {
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) {
