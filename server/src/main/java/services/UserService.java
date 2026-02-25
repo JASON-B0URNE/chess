@@ -3,7 +3,6 @@ package services;
 import com.google.gson.Gson;
 import dataaccess.InterfaceDOA;
 import model.AuthData;
-import model.GameData;
 import model.UserData;
 import requests.Response;
 
@@ -13,12 +12,10 @@ import java.util.UUID;
 public class UserService {
     InterfaceDOA<AuthData> authDOA;
     InterfaceDOA<UserData> userDOA;
-    InterfaceDOA<GameData> gameDOA;
 
-    public UserService(InterfaceDOA<AuthData> authDOA, InterfaceDOA<UserData> userDOA, InterfaceDOA<GameData> gameDOA) {
+    public UserService(InterfaceDOA<AuthData> authDOA, InterfaceDOA<UserData> userDOA) {
         this.authDOA = authDOA;
         this.userDOA = userDOA;
-        this.gameDOA = gameDOA;
     }
 
     public Response createUser(io.javalin.http.Context ctx) {
