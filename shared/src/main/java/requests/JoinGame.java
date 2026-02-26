@@ -9,7 +9,8 @@ public record JoinGame(String authToken, String playerColor, int gameID) {
             return false;
         }
         JoinGame joinGame = (JoinGame) o;
-        return gameID() == joinGame.gameID() && Objects.equals(authToken(), joinGame.authToken()) && Objects.equals(playerColor(), joinGame.playerColor());
+        return gameID() == joinGame.gameID() && Objects.equals(authToken(), joinGame.authToken())
+        && Objects.equals(playerColor(), joinGame.playerColor());
     }
 
     @Override
