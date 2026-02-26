@@ -1,4 +1,4 @@
-package passoff.service;
+package service;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
