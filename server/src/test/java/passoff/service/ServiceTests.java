@@ -20,7 +20,7 @@ import services.UserService;
 import java.util.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class StandardServiceTests {
+public class ServiceTests {
     InterfaceDOA<AuthData> authDOA;
     InterfaceDOA<UserData> userDOA;
     InterfaceDOA<GameData> gameDOA;
