@@ -50,4 +50,8 @@ public class AuthService {
         authDOA.delete(session);
         return new Response(200, "{}");
     }
+
+    public void clear() {
+        authDOA.clear();
+    }
 }

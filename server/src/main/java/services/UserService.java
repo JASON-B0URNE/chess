@@ -40,4 +40,7 @@ public class UserService {
         return new Response(200, serializer.toJson(session));
     }
 
+    public void clear() {
+        userDOA.clear();
+    }
 }

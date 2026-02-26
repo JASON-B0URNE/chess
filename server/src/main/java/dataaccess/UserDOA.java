@@ -39,7 +39,7 @@ public class UserDOA implements InterfaceDOA<UserData> {
 
     @Override
     public Collection<UserData> list() {
-        return null;
+        return this.users;
     }
 
     @Override

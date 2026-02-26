@@ -32,9 +32,9 @@ public class Server {
 
         javalin = Javalin.create(config -> {config.staticFiles.add("web");})
             .delete("/db", ctx -> {
-                authDOA.clear();
-                userDOA.clear();
-                gameDOA.clear();
+                authService.clear();
+                userService.clear();
+                gameService.clear();
 
                 ctx.status(200).result("{}");
             })

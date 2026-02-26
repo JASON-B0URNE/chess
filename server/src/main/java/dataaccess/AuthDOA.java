@@ -36,7 +36,7 @@ public class AuthDOA implements InterfaceDOA<AuthData> {
 
     @Override
     public Collection<AuthData> list() {
-        return null;
+        return this.authTokens;
     }
 
     @Override
