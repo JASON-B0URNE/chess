@@ -62,7 +62,7 @@ public class StandardServiceTests {
     public void createUserPositiveTest() {
         UserData newUser = new UserData("username", "password", "email");
         this.userService.createUser(newUser);
-        UserData retrievedUser = this.userDOA.get("username");
+        UserData retrievedUser = this.userDOA.get(newUser.username());
         Assertions.assertEquals(newUser, retrievedUser, "Create normal user was not successful.");
     }
 
@@ -72,7 +72,49 @@ public class StandardServiceTests {
     public void createUserNegativeTest() {
         UserData newUser = new UserData("username", null, "email");
         this.userService.createUser(newUser);
-        UserData retrievedUser = this.userDOA.get("username");
+        UserData retrievedUser = this.userDOA.get(newUser.username());
         Assertions.assertNull(retrievedUser, "Create bad user was not successful.");
+    }
+
+    @Test
+    @Order(4)
+    @DisplayName("Create Session Positive Test")
+    public void createSessionPositiveTest() {
+        UserData newUser = new UserData("username", "password", "email");
+        this.authService.createSession(newUser);
+        Collection<AuthData> sessions = this.authDOA.list();
+        Assertions.assertFalse(sessions.isEmpty(), "Create normal user was not successful.");
+    }
+
+    @Test
+    @Order(5)
+    @DisplayName("Create Session Negative Test")
+    public void createSessionNegativeTest() {
+        UserData newUser = new UserData(null, "password", "email");
+        this.authService.createSession(newUser);
+        Collection<AuthData> sessions = this.authDOA.list();
+        Assertions.assertTrue(sessions.isEmpty(), "Create bad user was not successful.");
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("Delete Session Positive Test")
+    public void deleteSessionPositiveTest() {
+        AuthData newSession = new AuthData("authToken", "username");
+        this.authDOA.create(newSession);
+        this.authService.deleteSession(newSession.authToken());
+        Collection<AuthData> sessions = this.authDOA.list();
+        Assertions.assertFalse(sessions.isEmpty(), "Delete normal session was not successful.");
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("Create Session Negative Test")
+    public void deleteSessionNegativeTest() {
+        AuthData newSession = new AuthData("authToken", "username");
+        this.authDOA.create(newSession);
+        this.authService.deleteSession(null);
+        Collection<AuthData> sessions = this.authDOA.list();
+        Assertions.assertTrue(sessions.isEmpty(), "Delete normal session was not successful.");
     }
 }
