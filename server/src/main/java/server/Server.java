@@ -16,6 +16,11 @@ import services.AuthService;
 import services.GameService;
 import services.UserService;
 
+import java.sql.SQLException;
+
+import static dataaccess.DatabaseManager.createDatabase;
+import static dataaccess.DatabaseManager.createTables;
+
 public class Server {
     private final Javalin javalin;
 
@@ -29,6 +34,17 @@ public class Server {
         AuthService authService = new AuthService(authDOA, userDOA);
         UserService userService = new UserService(authDOA, userDOA);
         GameService gameService = new GameService(authDOA, userDOA, gameDOA);
+
+        try {
+            createDatabase();
+        } catch (SQLException ex) {
+            System.out.print("Create DB Failed");
+        }
+        try {
+            createTables();
+        } catch (SQLException ex) {
+            System.out.print("Create Table Failed");
+        }
 
         javalin = Javalin.create(config -> {config.staticFiles.add("web");})
             .delete("/db", ctx -> {
