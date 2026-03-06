@@ -65,7 +65,7 @@ public class ServiceTests {
 
             Assertions.assertTrue(authList.isEmpty() && userList.isEmpty() && gameList.isEmpty(),
             "Clear was not successful.");
-        } catch (SQLException _){}
+        } catch (SQLException ex){}
     }
 
     @Test
@@ -77,7 +77,7 @@ public class ServiceTests {
             this.userService.createUser(newUser);
             UserData retrievedUser = this.userDOA.get(newUser.username());
             Assertions.assertTrue(BCrypt.checkpw("password", retrievedUser.password()));
-        } catch (SQLException _){}
+        } catch (SQLException ex){}
     }
 
     @Test
@@ -89,7 +89,7 @@ public class ServiceTests {
             this.userService.createUser(newUser);
             UserData retrievedUser = this.userDOA.get(newUser.username());
             Assertions.assertNull(retrievedUser, "Create bad user was not successful.");
-        } catch (SQLException _){}
+        } catch (SQLException ex){}
     }
 
     @Test
@@ -101,7 +101,7 @@ public class ServiceTests {
             this.authService.createSession(newUser);
             Collection<AuthData> sessions = this.authDOA.list();
             Assertions.assertTrue(sessions.isEmpty(), "Create normal user was not successful.");
-        } catch (SQLException _){}
+        } catch (SQLException ex){}
     }
 
     @Test
@@ -113,7 +113,7 @@ public class ServiceTests {
             this.authService.createSession(newUser);
             Collection<AuthData> sessions = this.authDOA.list();
             Assertions.assertTrue(sessions.isEmpty(), "Create bad user was not successful.");
-        } catch (SQLException _){}
+        } catch (SQLException ex){}
     }
 
     @Test
@@ -126,7 +126,7 @@ public class ServiceTests {
             this.authService.deleteSession(newSession.authToken());
             Collection<AuthData> sessions = this.authDOA.list();
             Assertions.assertTrue(sessions.isEmpty(), "Delete normal session was not successful.");
-        } catch (SQLException _){}
+        } catch (SQLException ex){}
     }
 
     @Test
@@ -144,7 +144,7 @@ public class ServiceTests {
             }
 
             Assertions.assertFalse(sessions.isEmpty(), "Delete normal session was not successful.");
-        } catch (SQLException _){}
+        } catch (SQLException ex){}
     }
 
     @Test
@@ -170,7 +170,7 @@ public class ServiceTests {
             Collection<GameData> games = this.gameDOA.list();
 
             Assertions.assertEquals(resultGames, games, "Get games normal was not successful.");
-        } catch (SQLException _){}
+        } catch (SQLException ex){}
     }
 
     @Test
@@ -186,7 +186,7 @@ public class ServiceTests {
             Response result = this.gameService.getGames(session.authToken());
 
             Assertions.assertTrue(result.code() != 200, "Get games bad was not successful.");
-        } catch (SQLException _){}
+        } catch (SQLException ex){}
     }
 
     @Test
@@ -206,7 +206,7 @@ public class ServiceTests {
             Collection<GameData> games = this.gameDOA.list();
 
             Assertions.assertFalse(games.isEmpty(), "Get games normal was not successful.");
-        } catch (SQLException _){}
+        } catch (SQLException ex){}
     }
 
     @Test
@@ -226,7 +226,7 @@ public class ServiceTests {
             Collection<GameData> games = this.gameDOA.list();
 
             Assertions.assertTrue(games.isEmpty(), "Get games normal was not successful.");
-        } catch (SQLException _){}
+        } catch (SQLException ex){}
     }
 
     @Test
@@ -249,7 +249,7 @@ public class ServiceTests {
             GameData joinedGame = this.gameDOA.get(null);
 
             Assertions.assertEquals(joinedGame.whiteUsername(), session.username(), "Get games normal was not successful.");
-    } catch (SQLException _){}
+    } catch (SQLException ex){}
 }
 
     @Test
@@ -272,6 +272,6 @@ public class ServiceTests {
             GameData joinedGame = this.gameDOA.get(null);
 
             Assertions.assertNotEquals(joinedGame.whiteUsername(), session.username(), "Get games normal was not successful.");
-        } catch (SQLException _){}
+        } catch (SQLException ex){}
     }
 }
