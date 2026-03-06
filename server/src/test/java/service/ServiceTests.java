@@ -10,6 +10,7 @@ import model.AuthData;
 import model.GameData;
 import model.UserData;
 import org.junit.jupiter.api.*;
+import org.mindrot.jbcrypt.BCrypt;
 import requests.CreateGame;
 import requests.JoinGame;
 import requests.Response;
@@ -75,7 +76,7 @@ public class ServiceTests {
             UserData newUser = new UserData("username", "password", "email");
             this.userService.createUser(newUser);
             UserData retrievedUser = this.userDOA.get(newUser.username());
-            Assertions.assertEquals(newUser, retrievedUser, "Create normal user was not successful.");
+            Assertions.assertTrue(BCrypt.checkpw("password", retrievedUser.password()));
         } catch (SQLException _){}
     }
 
