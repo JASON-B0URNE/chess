@@ -1,6 +1,8 @@
 package services;
 
 import com.google.gson.Gson;
+import dataaccess.AuthDOA;
+import dataaccess.GameDOA;
 import dataaccess.InterfaceDOA;
 import model.AuthData;
 import model.GameData;
@@ -15,9 +17,8 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class GameService {
-    InterfaceDOA<AuthData> authDOA;
-    InterfaceDOA<UserData> userDOA;
-    InterfaceDOA<GameData> gameDOA;
+    InterfaceDOA<AuthData> authDOA = new AuthDOA();
+    InterfaceDOA<GameData> gameDOA = new GameDOA();
 
     public GameService() {
     }

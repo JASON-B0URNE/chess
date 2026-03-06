@@ -1,7 +1,9 @@
 package services;
 
 import com.google.gson.Gson;
+import dataaccess.AuthDOA;
 import dataaccess.InterfaceDOA;
+import dataaccess.UserDOA;
 import model.AuthData;
 import model.UserData;
 import requests.Response;
@@ -10,8 +12,8 @@ import java.util.Map;
 import java.util.UUID;
 
 public class UserService {
-    InterfaceDOA<AuthData> authDOA;
-    InterfaceDOA<UserData> userDOA;
+    InterfaceDOA<AuthData> authDOA = new AuthDOA();
+    InterfaceDOA<UserData> userDOA = new UserDOA();
 
     public UserService() {
     }
