@@ -1,6 +1,7 @@
 package dataaccess;
 
 import model.UserData;
+import org.mindrot.jbcrypt.BCrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,8 +20,10 @@ public class UserDOA implements InterfaceDOA<UserData> {
     @Override
     public void create(UserData user) {
         try {
+            String password = BCrypt.hashpw(user.password(), BCrypt.gensalt());
+
             executeUpdate("INSERT INTO users VALUES('" +
-                    user.username() + "','" + user.password() + "','" + user.email() + "');");
+                    user.username() + "','" + password + "','" + user.email() + "');");
         } catch (SQLException _) {
             System.out.print("User Create Issues");
         }

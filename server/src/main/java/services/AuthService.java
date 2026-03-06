@@ -7,6 +7,7 @@ import dataaccess.UserDOA;
 import model.AuthData;
 import model.UserData;
 import org.eclipse.jetty.server.Authentication;
+import org.mindrot.jbcrypt.BCrypt;
 import requests.Response;
 
 import java.util.Map;
@@ -29,7 +30,9 @@ public class AuthService {
             return new Response(400, serializer.toJson(Map.of("message", "Error: bad request")));
         }
 
-        if (oldUser == null || !newUser.password().equals(oldUser.password())) {
+
+
+        if (oldUser == null || !BCrypt.checkpw(newUser.password(), oldUser.password())) {
             return new Response(401, serializer.toJson(Map.of("message", "Error: unauthorized")));
         }
 
