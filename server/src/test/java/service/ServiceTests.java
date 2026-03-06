@@ -42,8 +42,6 @@ public class ServiceTests {
         this.gameService = new GameService();
 
         this.authService.clear();
-        this.userService.clear();
-        this.gameService.clear();
     }
 
     @Test
@@ -56,8 +54,6 @@ public class ServiceTests {
             this.gameDOA.create(new GameData(1234, "white", "black", "gameName", null));
 
             this.authService.clear();
-            this.userService.clear();
-            this.gameService.clear();
 
             Collection<AuthData> authList = authDOA.list();
             Collection<AuthData> userList = authDOA.list();
