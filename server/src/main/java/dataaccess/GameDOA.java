@@ -19,9 +19,17 @@ public class GameDOA implements InterfaceDOA<GameData> {
     public void create(GameData game) {
         var serializer = new Gson();
         try {
+            System.out.println("GAME NAME: " + game.gameName());
+
+
+            String gameName = game.gameName();
+            if (gameName != null) {
+                gameName = game.gameName().replace("'", "''");
+            }
+
             executeUpdate("INSERT INTO games VALUES('" +
                     game.gameID() + "','" + game.whiteUsername() + "','" + game.blackUsername() +
-                    "','" + game.gameName() + "','" + serializer.toJson(game.game()) + "');");
+                    "','" + gameName + "','" + serializer.toJson(game.game()) + "');");
         } catch (SQLException _) {
             System.out.print("User Create Issues");
         }
@@ -43,11 +51,11 @@ public class GameDOA implements InterfaceDOA<GameData> {
             if (Objects.equals(whiteUsername, "null")) {
                 whiteUsername = null;
             }
-            String blackUsername = row.get(1);
+            String blackUsername = row.get(2);
             if (Objects.equals(blackUsername, "null")) {
                 blackUsername = null;
             }
-            String gameName = row.get(1);
+            String gameName = row.get(3);
             if (Objects.equals(gameName, "null")) {
                 gameName = null;
             }
@@ -115,10 +123,18 @@ public class GameDOA implements InterfaceDOA<GameData> {
     public void replace(GameData data) {
         var serializer = new Gson();
         try {
+
+            System.out.println("TESTING BLACK USERNAME: " + data.blackUsername());
+
+            String gameName = data.gameName();
+            if (gameName != null) {
+                gameName = data.gameName().replace("'", "''");
+            }
+
             executeUpdate("UPDATE games " +
                     "SET whiteUsername='" + data.whiteUsername() +
                     "', blackUsername='" + data.blackUsername() +
-                    "', gameName='" + data.gameName() +
+                    "', gameName='" + gameName +
                     "', game='" + serializer.toJson(data.game()) +
                     "' WHERE gameID='" + data.gameID() + "';");
         } catch (SQLException _) {
