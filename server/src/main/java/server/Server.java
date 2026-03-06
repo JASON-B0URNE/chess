@@ -1,12 +1,7 @@
 package server;
 
 import com.google.gson.Gson;
-import dataaccess.AuthDOA;
-import dataaccess.GameDOA;
-import dataaccess.InterfaceDOA;
-import dataaccess.UserDOA;
 import io.javalin.*;
-import model.AuthData;
 import model.GameData;
 import model.UserData;
 import requests.CreateGame;
@@ -44,9 +39,24 @@ public class Server {
 
         javalin = Javalin.create(config -> {config.staticFiles.add("web");})
             .delete("/db", ctx -> {
-                authService.clear();
-                userService.clear();
-                gameService.clear();
+
+                Response response = authService.clear();
+                if (response.code() == 500) {
+                    ctx.status(response.code()).result(response.json());
+                    return;
+                }
+
+                response = userService.clear();
+                if (response.code() == 500) {
+                    ctx.status(response.code()).result(response.json());
+                    return;
+                }
+
+                response = gameService.clear();
+                if (response.code() == 500) {
+                    ctx.status(response.code()).result(response.json());
+                    return;
+                }
 
                 ctx.status(200).result("{}");
             })
