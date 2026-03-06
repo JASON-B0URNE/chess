@@ -24,6 +24,8 @@ public class AuthService {
 
         UserData oldUser = userDOA.get(newUser.username());
 
+        System.out.print("CHECK " + serializer.toJson(oldUser));
+
         if (newUser.username() == null || newUser.password() == null ) {
             return new Response(400, serializer.toJson(Map.of("message", "Error: bad request")));
         }

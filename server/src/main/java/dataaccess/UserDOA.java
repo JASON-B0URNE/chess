@@ -19,8 +19,8 @@ public class UserDOA implements InterfaceDOA<UserData> {
     @Override
     public void create(UserData user) {
         try {
-            executeUpdate("INSERT INTO users VALUES(" +
-                    user.username() + ", " + user.password() + "," + user.email() + ");");
+            executeUpdate("INSERT INTO users VALUES('" +
+                    user.username() + "','" + user.password() + "','" + user.email() + "');");
         } catch (SQLException _) {
             System.out.print("User Create Issues");
         }
@@ -31,12 +31,13 @@ public class UserDOA implements InterfaceDOA<UserData> {
         try {
             ArrayList<ArrayList<String>> result = executeQuery("SELECT username, password, email FROM users WHERE username='" + username + "';");
             if(result.isEmpty()) {
-                return new UserData(null, null, null);
+                System.out.print("NULL RESULT");
+                return null;
             }
             return new UserData(result.get(0).get(0), result.get(0).get(1), result.get(0).get(2));
         } catch (SQLException ex) {
             System.out.print("User get error");
-            return new UserData(null, null, null);
+            return null;
         }
     }
 
