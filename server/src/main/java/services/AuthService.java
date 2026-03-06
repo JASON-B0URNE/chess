@@ -2,9 +2,11 @@ package services;
 
 import com.google.gson.Gson;
 import dataaccess.AuthDOA;
+import dataaccess.GameDOA;
 import dataaccess.InterfaceDOA;
 import dataaccess.UserDOA;
 import model.AuthData;
+import model.GameData;
 import model.UserData;
 import org.eclipse.jetty.server.Authentication;
 import org.mindrot.jbcrypt.BCrypt;
@@ -17,6 +19,7 @@ import java.util.UUID;
 public class AuthService {
     InterfaceDOA<AuthData> authDOA = new AuthDOA();
     InterfaceDOA<UserData> userDOA = new UserDOA();
+    InterfaceDOA<GameData> gameDOA = new GameDOA();
 
     public AuthService() {
     }
@@ -80,6 +83,8 @@ public class AuthService {
         var serializer = new Gson();
 
         try {
+            gameDOA.clear();
+            userDOA.clear();
             authDOA.clear();
             return new Response(200, serializer.toJson(null));
         } catch (SQLException ex) {

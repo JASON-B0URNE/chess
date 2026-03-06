@@ -41,24 +41,7 @@ public class Server {
             .delete("/db", ctx -> {
 
                 Response response = authService.clear();
-                if (response.code() == 500) {
-                    ctx.status(response.code()).result(response.json());
-                    return;
-                }
-
-                response = userService.clear();
-                if (response.code() == 500) {
-                    ctx.status(response.code()).result(response.json());
-                    return;
-                }
-
-                response = gameService.clear();
-                if (response.code() == 500) {
-                    ctx.status(response.code()).result(response.json());
-                    return;
-                }
-
-                ctx.status(200).result("{}");
+                ctx.status(response.code()).result(response.json());
             })
             .post("/user", ctx -> {
                 UserData newUser = serializer.fromJson(ctx.body(), UserData.class);

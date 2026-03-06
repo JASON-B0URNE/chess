@@ -53,15 +53,4 @@ public class UserService {
 
         return new Response(200, serializer.toJson(session));
     }
-
-    public Response clear() {
-        var serializer = new Gson();
-
-        try {
-            userDOA.clear();
-            return new Response(200, serializer.toJson(null));
-        } catch (SQLException ex) {
-            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
-        }
-    }
 }

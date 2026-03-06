@@ -2,8 +2,6 @@ package dataaccess;
 
 import model.UserData;
 import org.mindrot.jbcrypt.BCrypt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -13,8 +11,6 @@ import java.util.HashSet;
 import static dataaccess.DatabaseManager.*;
 
 public class UserDOA implements InterfaceDOA<UserData> {
-    private static final Logger log = LoggerFactory.getLogger(UserDOA.class);
-
     @Override
     public void create(UserData user) throws SQLException {
         String password = BCrypt.hashpw(user.password(), BCrypt.gensalt());
