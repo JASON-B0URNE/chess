@@ -25,7 +25,6 @@ public class AuthDOA implements InterfaceDOA<AuthData> {
             return null;
         }
         return new AuthData(result.get(0).get(0), result.get(0).get(1));
-
     }
 
     @Override

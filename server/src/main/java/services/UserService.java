@@ -8,6 +8,7 @@ import model.AuthData;
 import model.UserData;
 import requests.Response;
 
+import java.sql.SQLException;
 import java.util.Map;
 import java.util.UUID;
 
@@ -20,9 +21,13 @@ public class UserService {
 
     public Response createUser(UserData newUser) {
         var serializer = new Gson();
+        UserData oldUser;
 
-        UserData oldUser = userDOA.get(newUser.username());
-
+        try {
+            oldUser = userDOA.get(newUser.username());
+        } catch (SQLException ex) {
+            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+        }
         if (newUser.username() == null || newUser.password() == null || newUser.email() == null) {
             return new Response(400, serializer.toJson(Map.of("message", "Error: bad request")));
         }
@@ -31,16 +36,32 @@ public class UserService {
             return new Response(403, serializer.toJson(Map.of("message", "Error: already taken")));
         }
 
-        userDOA.create(newUser);
+        try {
+            userDOA.create(newUser);
+        } catch (SQLException ex) {
+            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+        }
+
         String authToken = UUID.randomUUID().toString();
         AuthData session = new AuthData( authToken, newUser.username());
 
-        authDOA.create(session);
+        try {
+            authDOA.create(session);
+        } catch (SQLException ex) {
+            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+        }
 
         return new Response(200, serializer.toJson(session));
     }
 
-    public void clear() {
-        userDOA.clear();
+    public Response clear() {
+        var serializer = new Gson();
+
+        try {
+            userDOA.clear();
+            return new Response(200, serializer.toJson(null));
+        } catch (SQLException ex) {
+            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+        }
     }
 }

@@ -14,5 +14,5 @@ public interface InterfaceDOA<T> {
     public void delete(T data) throws SQLException;
     public void clear() throws SQLException;
     public Collection<T> list() throws SQLException;
-    void replace(T data);
+    void replace(T data) throws SQLException;
 }
