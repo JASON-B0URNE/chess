@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static dataaccess.DatabaseManager.executeQuery;
 import static dataaccess.DatabaseManager.executeUpdate;
@@ -38,7 +39,19 @@ public class GameDOA implements InterfaceDOA<GameData> {
             int gameID = Integer.parseInt(row.get(0));
             var serializer = new Gson();
             ChessGame game = serializer.fromJson(row.get(4), ChessGame.class);
-            return new GameData(gameID, row.get(1), row.get(2), row.get(3), game);
+            String whiteUsername = row.get(1);
+            if (Objects.equals(whiteUsername, "null")) {
+                whiteUsername = null;
+            }
+            String blackUsername = row.get(1);
+            if (Objects.equals(blackUsername, "null")) {
+                blackUsername = null;
+            }
+            String gameName = row.get(1);
+            if (Objects.equals(gameName, "null")) {
+                gameName = null;
+            }
+            return new GameData(gameID, whiteUsername, blackUsername, gameName, game);
         } catch (SQLException ex) {
             System.out.print("Get Game");
             return null;
@@ -76,7 +89,19 @@ public class GameDOA implements InterfaceDOA<GameData> {
                 int gameID = Integer.parseInt(row.get(0));
                 var serializer = new Gson();
                 ChessGame game = serializer.fromJson(row.get(4), ChessGame.class);
-                games.add(new GameData(gameID, row.get(1), row.get(2), row.get(3), game));
+                String whiteUsername = row.get(1);
+                if (Objects.equals(whiteUsername, "null")) {
+                    whiteUsername = null;
+                }
+                String blackUsername = row.get(2);
+                if (Objects.equals(blackUsername, "null")) {
+                    blackUsername = null;
+                }
+                String gameName = row.get(3);
+                if (Objects.equals(gameName, "null")) {
+                    gameName = null;
+                }
+                games.add(new GameData(gameID, whiteUsername, blackUsername, gameName, game));
             }
 
             return games;
@@ -92,10 +117,10 @@ public class GameDOA implements InterfaceDOA<GameData> {
         try {
             executeUpdate("UPDATE games " +
                     "SET whiteUsername='" + data.whiteUsername() +
-                    "' blackUsername='" + data.blackUsername() +
-                    "' gameName='" + data.gameName() +
-                    "' game='" + serializer.toJson(data.game()) +
-                    "WHERE gameID='" + data.gameID() + "';");
+                    "', blackUsername='" + data.blackUsername() +
+                    "', gameName='" + data.gameName() +
+                    "', game='" + serializer.toJson(data.game()) +
+                    "' WHERE gameID='" + data.gameID() + "';");
         } catch (SQLException _) {
             System.out.print("Game Replace Issue");
         }

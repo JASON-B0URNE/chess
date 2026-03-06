@@ -38,6 +38,10 @@ public class ServiceTests {
         this.authService = new AuthService();
         this.userService = new UserService();
         this.gameService = new GameService();
+
+        this.authService.clear();
+        this.userService.clear();
+        this.gameService.clear();
     }
 
     @Test
@@ -120,6 +124,11 @@ public class ServiceTests {
         this.authDOA.create(newSession);
         this.authService.deleteSession(null);
         Collection<AuthData> sessions = this.authDOA.list();
+
+        if (sessions.isEmpty()) {
+            System.out.print("Outputting lists is weird");
+        }
+
         Assertions.assertFalse(sessions.isEmpty(), "Delete normal session was not successful.");
     }
 

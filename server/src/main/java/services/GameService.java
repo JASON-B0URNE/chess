@@ -38,6 +38,8 @@ public class GameService {
 
         Collection<GameData> games = gameDOA.list();
 
+        System.out.println("All Games: " + serializer.toJson(games));
+
         AtomicReference<GameData> game = new AtomicReference<>();
 
         games.forEach( x -> {
@@ -49,6 +51,8 @@ public class GameService {
         if (game.get() == null) {
             return new Response(400, serializer.toJson(Map.of("message", "Error: unauthorized")));
         }
+
+        System.out.println("GAME: " + serializer.toJson(game.get()));
 
         if ((game.get().blackUsername() != null && Objects.equals(request.playerColor(), "BLACK")) ||
                 (game.get().whiteUsername() != null && Objects.equals(request.playerColor(), "WHITE"))) {

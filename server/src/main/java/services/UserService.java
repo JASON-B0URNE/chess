@@ -30,6 +30,9 @@ public class UserService {
         }
 
         if (oldUser != null) {
+            System.out.println("CHECK OLD USER:" + serializer.toJson(oldUser));
+            System.out.println("CHECK NEW USER:" + serializer.toJson(newUser));
+
             return new Response(403, serializer.toJson(Map.of("message", "Error: already taken")));
         }
 
