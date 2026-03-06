@@ -10,6 +10,7 @@ import org.eclipse.jetty.server.Authentication;
 import org.mindrot.jbcrypt.BCrypt;
 import requests.Response;
 
+import java.sql.SQLException;
 import java.util.Map;
 import java.util.UUID;
 
@@ -22,9 +23,13 @@ public class AuthService {
 
     public Response createSession(UserData newUser) {
         var serializer = new Gson();
+        UserData oldUser;
 
-        UserData oldUser = userDOA.get(newUser.username());
-
+        try {
+            oldUser = userDOA.get(newUser.username());
+        } catch (SQLException ex) {
+            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+        }
 
         if (newUser.username() == null || newUser.password() == null ) {
             return new Response(400, serializer.toJson(Map.of("message", "Error: bad request")));
@@ -39,24 +44,46 @@ public class AuthService {
         String authToken = UUID.randomUUID().toString();
         AuthData session = new AuthData( authToken, newUser.username());
 
-        authDOA.create(session);
+        try {
+            authDOA.create(session);
+        } catch (SQLException ex) {
+            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+        }
 
         return new Response(200, serializer.toJson(session));
     }
 
     public Response deleteSession(String authToken) {
         var serializer = new Gson();
+        AuthData session;
 
-        AuthData session = authDOA.get(authToken);
+        try {
+            session = authDOA.get(authToken);
+        } catch (SQLException ex) {
+            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+        }
+
         if (session == null) {
             return new Response(401, serializer.toJson(Map.of("message", "Error: unauthorized")));
         }
 
-        authDOA.delete(session);
+        try {
+            authDOA.delete(session);
+        } catch (SQLException ex) {
+            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+        }
+
         return new Response(200, "{}");
     }
 
-    public void clear() {
-        authDOA.clear();
+    public Response clear() {
+        var serializer = new Gson();
+
+        try {
+            authDOA.clear();
+            return new Response(200, serializer.toJson(null));
+        } catch (SQLException ex) {
+            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+        }
     }
 }

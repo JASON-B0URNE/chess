@@ -11,6 +11,7 @@ import requests.CreateGame;
 import requests.JoinGame;
 import requests.Response;
 
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
@@ -25,8 +26,13 @@ public class GameService {
 
     public Response joinGame(JoinGame request) {
         var serializer = new Gson();
+        AuthData session;
 
-        AuthData session = authDOA.get(request.authToken());
+        try {
+            session = authDOA.get(request.authToken());
+        } catch (SQLException ex) {
+            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+        }
 
         if (session == null) {
             return new Response(401, serializer.toJson(Map.of("message", "Error: unauthorized")));
@@ -36,7 +42,12 @@ public class GameService {
             return new Response(400, serializer.toJson(Map.of("message", "Error: bad request")));
         }
 
-        Collection<GameData> games = gameDOA.list();
+        Collection<GameData> games;
+        try {
+            games = gameDOA.list();
+        } catch (SQLException ex) {
+            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+        }
 
         System.out.println("All Games: " + serializer.toJson(games));
 
@@ -52,19 +63,25 @@ public class GameService {
             return new Response(400, serializer.toJson(Map.of("message", "Error: unauthorized")));
         }
 
-        System.out.println("GAME: " + serializer.toJson(game.get()));
-
         if ((game.get().blackUsername() != null && Objects.equals(request.playerColor(), "BLACK")) ||
                 (game.get().whiteUsername() != null && Objects.equals(request.playerColor(), "WHITE"))) {
             return new Response(403, serializer.toJson(Map.of("message", "Error: already taken")));
         }
 
         if (Objects.equals(request.playerColor(), "BLACK")) {
-            gameDOA.replace(new GameData(game.get().gameID(), game.get().whiteUsername(),
-                    session.username(), game.get().gameName(), game.get().game()));
+            try {
+                gameDOA.replace(new GameData(game.get().gameID(), game.get().whiteUsername(),
+                        session.username(), game.get().gameName(), game.get().game()));
+            } catch (SQLException ex) {
+                return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+            }
         } else {
-            gameDOA.replace(new GameData(game.get().gameID(), session.username(),
-                    game.get().blackUsername(), game.get().gameName(), game.get().game()));
+            try {
+                gameDOA.replace(new GameData(game.get().gameID(), session.username(),
+                        game.get().blackUsername(), game.get().gameName(), game.get().game()));
+            } catch (SQLException ex) {
+                return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+            }
         }
 
         return new Response(200, "{}");
@@ -72,14 +89,23 @@ public class GameService {
 
     public Response getGames(String authToken) {
         var serializer = new Gson();
+        AuthData session;
 
-        AuthData session = authDOA.get(authToken);
-
+        try{
+            session = authDOA.get(authToken);
+        } catch (SQLException ex) {
+            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+        }
         if (session == null) {
             return new Response(401, serializer.toJson(Map.of("message", "Error: unauthorized")));
         }
 
-        var games = gameDOA.list();
+        Collection<GameData> games;
+        try {
+            games = gameDOA.list();
+        } catch (SQLException ex) {
+            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+        }
 
         System.out.print("Games: " + games);
         return new Response(200, serializer.toJson(Map.of("games", games)));
@@ -87,8 +113,13 @@ public class GameService {
 
     public Response createGame(CreateGame request) {
         var serializer = new Gson();
+        AuthData session;
 
-        AuthData session = authDOA.get(request.authToken());
+        try {
+            session = authDOA.get(request.authToken());
+        } catch (SQLException ex) {
+            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+        }
 
         if (session == null) {
             return new Response(401, serializer.toJson(Map.of("message", "Error: unauthorized")));
@@ -100,19 +131,33 @@ public class GameService {
             return new Response(400, serializer.toJson(Map.of("message", "Error: bad request")));
         }
 
-        GameData oldGame = gameDOA.get(null);
+        GameData oldGame;
+        try {
+            oldGame = gameDOA.get(null);
+        } catch (SQLException ex) {
+            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+        }
 
         int gameID = 1;
         if (oldGame != null) {
             gameID = oldGame.gameID() + 1;
         }
-
-        gameDOA.create(new GameData(gameID, null, null, newGame.gameName(), null));
-
+        try {
+            gameDOA.create(new GameData(gameID, null, null, newGame.gameName(), null));
+        } catch (SQLException ex) {
+            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+        }
         return new Response(200, serializer.toJson(Map.of("gameID", gameID)));
     }
 
-    public void clear() {
-        gameDOA.clear();
+    public Response clear() {
+        var serializer = new Gson();
+
+        try {
+            gameDOA.clear();
+            return new Response(200, serializer.toJson(null));
+        } catch (SQLException ex) {
+            return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
+        }
     }
 }
