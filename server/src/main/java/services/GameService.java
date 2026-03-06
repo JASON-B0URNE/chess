@@ -19,10 +19,7 @@ public class GameService {
     InterfaceDOA<UserData> userDOA;
     InterfaceDOA<GameData> gameDOA;
 
-    public GameService(InterfaceDOA<AuthData> authDOA, InterfaceDOA<UserData> userDOA, InterfaceDOA<GameData> gameDOA) {
-        this.authDOA = authDOA;
-        this.userDOA = userDOA;
-        this.gameDOA = gameDOA;
+    public GameService() {
     }
 
     public Response joinGame(JoinGame request) {

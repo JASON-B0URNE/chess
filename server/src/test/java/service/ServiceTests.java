@@ -35,9 +35,9 @@ public class ServiceTests {
         this.userDOA = new UserDOA();
         this.gameDOA = new GameDOA();
 
-        this.authService = new AuthService(authDOA, userDOA);
-        this.userService = new UserService(authDOA, userDOA);
-        this.gameService = new GameService(authDOA, userDOA, gameDOA);
+        this.authService = new AuthService();
+        this.userService = new UserService();
+        this.gameService = new GameService();
     }
 
     @Test

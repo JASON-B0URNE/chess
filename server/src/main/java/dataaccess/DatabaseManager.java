@@ -1,6 +1,7 @@
 package dataaccess;
 
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Properties;
 
 public class DatabaseManager {
@@ -14,6 +15,49 @@ public class DatabaseManager {
      */
     static {
         loadPropertiesFromResources();
+    }
+
+    static public void executeUpdate(String statement) throws SQLException {
+        var initialize = "USE " + databaseName;
+        try (var conn = DriverManager.getConnection(connectionUrl, dbUsername, dbPassword);
+             var initializeStatement = conn.prepareStatement(initialize)) {
+            initializeStatement.executeUpdate();
+
+            var preparedStatement = conn.prepareStatement(statement);
+            preparedStatement.executeUpdate();
+
+        } catch (SQLException ex) {
+            throw new SQLException("failed to create database", ex);
+        }
+    }
+
+    static public ArrayList<ArrayList<String>> executeQuery(String statement) throws SQLException {
+        var initialize = "USE " + databaseName;
+        var results = new ArrayList<ArrayList<String>>();
+
+        try (var conn = DriverManager.getConnection(connectionUrl, dbUsername, dbPassword);
+             var initializeStatement = conn.prepareStatement(initialize)) {
+            initializeStatement.executeUpdate();
+
+            var preparedStatement = conn.prepareStatement(statement);
+            var result = preparedStatement.executeQuery();
+
+            int columnCount = result.getMetaData().getColumnCount();
+
+            while (result.next()) {
+                var row = new ArrayList<String>();
+
+                for (int i = 1; i <= columnCount; i ++) {
+                    row.add(result.getString(i));
+                }
+                results.add(row);
+            }
+
+            return results;
+
+        } catch (SQLException ex) {
+            throw new SQLException("failed to create database", ex);
+        }
     }
 
     /**
@@ -30,15 +74,19 @@ public class DatabaseManager {
     }
 
     static public void createTables() throws SQLException {
-        var statement = "USE " + databaseName + ";" +
-                "CREATE TABLE IF NOT EXISTS users (username VARCHAR(100) PRIMARY KEY, password VARCHAR(100) NOT NULL);" +
-                "CREATE TABLE IF NOT EXISTS sessions (authToken VARCHAR(100) PRIMARY KEY, username VARCHAR(100) NOT NULL" +
-                ", FOREIGN KEY (username) REFERENCES users(username));" +
-                "CREATE TABLE IF NOT EXISTS games (gameID int PRIMARY KEY, whiteUsername VARCHAR(100), blackUsername VARCHAR(100), gameName VARCHAR(100), game JSON" +
+        String[] statements = new String[4];
+
+        statements[0] = "USE " + databaseName + ";";
+        statements[1] = "CREATE TABLE IF NOT EXISTS users (username VARCHAR(100) PRIMARY KEY, password VARCHAR(100) NOT NULL, email VARCHAR(100) NOT NULL);";
+        statements[2] = "CREATE TABLE IF NOT EXISTS sessions (authToken VARCHAR(100) PRIMARY KEY, username VARCHAR(100) NOT NULL" +
+                ", FOREIGN KEY (username) REFERENCES users(username));";
+        statements[3] = "CREATE TABLE IF NOT EXISTS games (gameID int PRIMARY KEY, whiteUsername VARCHAR(100), blackUsername VARCHAR(100), gameName VARCHAR(100), game JSON" +
                 ", FOREIGN KEY (whiteUsername) REFERENCES users(username), FOREIGN KEY (blackUsername) REFERENCES users(username));";
-        try (var conn = DriverManager.getConnection(connectionUrl, dbUsername, dbPassword);
-             var preparedStatement = conn.prepareStatement(statement)) {
-            preparedStatement.executeUpdate();
+        try (var conn = DriverManager.getConnection(connectionUrl, dbUsername, dbPassword)) {
+             for (String statement : statements) {
+                 var preparedStatement = conn.prepareStatement(statement);
+                 preparedStatement.executeUpdate();
+             }
         } catch (SQLException ex) {
             throw new SQLException("failed to create database", ex);
         }

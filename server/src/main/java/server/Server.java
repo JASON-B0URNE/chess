@@ -27,13 +27,9 @@ public class Server {
     public Server() {
         var serializer = new Gson();
 
-        InterfaceDOA<AuthData> authDOA = new AuthDOA();
-        InterfaceDOA<UserData> userDOA = new UserDOA();
-        InterfaceDOA<GameData> gameDOA = new GameDOA();
-
-        AuthService authService = new AuthService(authDOA, userDOA);
-        UserService userService = new UserService(authDOA, userDOA);
-        GameService gameService = new GameService(authDOA, userDOA, gameDOA);
+        AuthService authService = new AuthService();
+        UserService userService = new UserService();
+        GameService gameService = new GameService();
 
         try {
             createDatabase();

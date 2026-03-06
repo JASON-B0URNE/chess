@@ -13,9 +13,7 @@ public class UserService {
     InterfaceDOA<AuthData> authDOA;
     InterfaceDOA<UserData> userDOA;
 
-    public UserService(InterfaceDOA<AuthData> authDOA, InterfaceDOA<UserData> userDOA) {
-        this.authDOA = authDOA;
-        this.userDOA = userDOA;
+    public UserService() {
     }
 
     public Response createUser(UserData newUser) {
