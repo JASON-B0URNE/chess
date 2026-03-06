@@ -18,9 +18,9 @@ public class GameDOA implements InterfaceDOA<GameData> {
     public void create(GameData game) {
         var serializer = new Gson();
         try {
-            executeUpdate("INSERT INTO games VALUES(" +
-                    game.gameID() + ", " + game.whiteUsername() + "," + game.blackUsername() +
-                    "," + game.gameName() + "," + serializer.toJson(game.game()) + ");");
+            executeUpdate("INSERT INTO games VALUES('" +
+                    game.gameID() + "','" + game.whiteUsername() + "','" + game.blackUsername() +
+                    "','" + game.gameName() + "','" + serializer.toJson(game.game()) + "');");
         } catch (SQLException _) {
             System.out.print("User Create Issues");
         }

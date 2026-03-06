@@ -17,8 +17,8 @@ public class AuthDOA implements InterfaceDOA<AuthData> {
     @Override
     public void create(AuthData auth) {
         try {
-            executeUpdate("INSERT INTO sessions VALUES(" +
-                    auth.authToken() + ", " + auth.username() + ");");
+            executeUpdate("INSERT INTO sessions VALUES('" +
+                    auth.authToken() + "','" + auth.username() + "');");
         } catch (SQLException _) {
             System.out.print("Auth Create Issues");
         }
