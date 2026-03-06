@@ -77,11 +77,12 @@ public class DatabaseManager {
         String[] statements = new String[4];
 
         statements[0] = "USE " + databaseName + ";";
-        statements[1] = "CREATE TABLE IF NOT EXISTS users (username VARCHAR(100) PRIMARY KEY," +
+        statements[1] = "CREATE TABLE IF NOT EXISTS users (username VARCHAR(100) PRIMARY KEY, " +
                 "password VARCHAR(100) NOT NULL, email VARCHAR(100) NOT NULL);";
-        statements[2] = "CREATE TABLE IF NOT EXISTS sessions (authToken VARCHAR(100)" +
+        statements[2] = "CREATE TABLE IF NOT EXISTS sessions (authToken VARCHAR(100) " +
                 "PRIMARY KEY, username VARCHAR(100) NOT NULL);";
-        statements[3] = "CREATE TABLE IF NOT EXISTS games (gameID int PRIMARY KEY, whiteUsername VARCHAR(100), blackUsername VARCHAR(100), gameName VARCHAR(100), game JSON);";
+        statements[3] = "CREATE TABLE IF NOT EXISTS games (gameID int PRIMARY KEY, whiteUsername VARCHAR(100), blackUsername " +
+                "VARCHAR(100), gameName VARCHAR(100), game JSON);";
         try (var conn = DriverManager.getConnection(connectionUrl, dbUsername, dbPassword)) {
              for (String statement : statements) {
                  var preparedStatement = conn.prepareStatement(statement);

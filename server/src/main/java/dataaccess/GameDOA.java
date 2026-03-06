@@ -14,6 +14,25 @@ import static dataaccess.DatabaseManager.executeQuery;
 import static dataaccess.DatabaseManager.executeUpdate;
 
 public class GameDOA implements InterfaceDOA<GameData> {
+    public GameData parseRow(ArrayList<String> row) {
+        int gameID = Integer.parseInt(row.get(0));
+        var serializer = new Gson();
+        ChessGame game = serializer.fromJson(row.get(4), ChessGame.class);
+        String whiteUsername = row.get(1);
+        if (Objects.equals(whiteUsername, "null")) {
+            whiteUsername = null;
+        }
+        String blackUsername = row.get(2);
+        if (Objects.equals(blackUsername, "null")) {
+            blackUsername = null;
+        }
+        String gameName = row.get(3);
+        if (Objects.equals(gameName, "null")) {
+            gameName = null;
+        }
+        return new GameData(gameID, whiteUsername, blackUsername, gameName, game);
+    }
+
     @Override
     public void create(GameData game) throws SQLException {
         var serializer = new Gson();
@@ -38,22 +57,8 @@ public class GameDOA implements InterfaceDOA<GameData> {
             return null;
         }
         ArrayList<String> row = result.get(0);
-        int gameID = Integer.parseInt(row.get(0));
-        var serializer = new Gson();
-        ChessGame game = serializer.fromJson(row.get(4), ChessGame.class);
-        String whiteUsername = row.get(1);
-        if (Objects.equals(whiteUsername, "null")) {
-            whiteUsername = null;
-        }
-        String blackUsername = row.get(2);
-        if (Objects.equals(blackUsername, "null")) {
-            blackUsername = null;
-        }
-        String gameName = row.get(3);
-        if (Objects.equals(gameName, "null")) {
-            gameName = null;
-        }
-        return new GameData(gameID, whiteUsername, blackUsername, gameName, game);
+
+        return parseRow(row);
     }
 
     @Override
@@ -76,22 +81,7 @@ public class GameDOA implements InterfaceDOA<GameData> {
         }
 
         for (ArrayList<String> row : result) {
-            int gameID = Integer.parseInt(row.get(0));
-            var serializer = new Gson();
-            ChessGame game = serializer.fromJson(row.get(4), ChessGame.class);
-            String whiteUsername = row.get(1);
-            if (Objects.equals(whiteUsername, "null")) {
-                whiteUsername = null;
-            }
-            String blackUsername = row.get(2);
-            if (Objects.equals(blackUsername, "null")) {
-                blackUsername = null;
-            }
-            String gameName = row.get(3);
-            if (Objects.equals(gameName, "null")) {
-                gameName = null;
-            }
-            games.add(new GameData(gameID, whiteUsername, blackUsername, gameName, game));
+            games.add(parseRow(row));
         }
 
         return games;
