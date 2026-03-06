@@ -23,16 +23,11 @@ public class UserService {
 
         UserData oldUser = userDOA.get(newUser.username());
 
-        System.out.print("CHECK " + serializer.toJson(oldUser));
-
         if (newUser.username() == null || newUser.password() == null || newUser.email() == null) {
             return new Response(400, serializer.toJson(Map.of("message", "Error: bad request")));
         }
 
         if (oldUser != null) {
-            System.out.println("CHECK OLD USER:" + serializer.toJson(oldUser));
-            System.out.println("CHECK NEW USER:" + serializer.toJson(newUser));
-
             return new Response(403, serializer.toJson(Map.of("message", "Error: already taken")));
         }
 
