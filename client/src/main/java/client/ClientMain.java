@@ -2,23 +2,76 @@ package client;
 
 import chess.*;
 
-import java.util.ArrayList;
-import java.util.Objects;
-import java.util.Scanner;
+import java.lang.reflect.Field;
+import java.util.*;
 
+import static java.io.IO.print;
 import static ui.EscapeSequences.*;
 
 public class ClientMain {
     private static String status = "LOGGED_OUT";
     private static boolean quit = false;
+    private static ChessBoard chessBoard = new ChessBoard();
+
+    private static void printSquare(String bgColor, String character) {
+        System.out.print(bgColor + " " + character + " " + RESET_BG_COLOR);
+    }
+
+    private static void printRowHeader(List<Character> cols) {
+        printSquare(null, null);
+        for (char col : cols) {
+            printSquare(null, String.valueOf(col));
+        }
+        printSquare(null, null);
+        System.out.print("\n");
+    }
+
+    private static void printBoard(ChessBoard board, String perspective) {
+        List<Character> cols = Arrays.asList('h','g','f','e','e','c','b','a');
+        List<Integer> rows = Arrays.asList(7,6,5,4,3,2,1,0);
+
+        if (Objects.equals(perspective, "BLACK")) {
+            Collections.reverse(cols);
+            Collections.reverse(rows);
+        }
+
+        printRowHeader(cols);
+        for (int row : rows) {
+            printSquare(null, String.valueOf(row));
+            for (int col : rows) {
+                String bgColor;
+                if (row % 2 > 0) {
+                    if (col % 2 > 0) {
+                        bgColor = SET_BG_COLOR_LIGHT_GREY;
+                    } else {
+                        bgColor = SET_BG_COLOR_DARK_GREY;
+                    }
+                } else {
+                    if (col % 2 > 0) {
+                        bgColor = SET_BG_COLOR_DARK_GREY;
+                    } else {
+                        bgColor = SET_BG_COLOR_LIGHT_GREY;
+                    }
+                }
+
+                ChessPiece piece = board.getPiece(new ChessPosition(row + 1, col + 1));
+                String pieceType = piece.getTeamColor() + "_" + piece.getPieceType();
+                try {
+                    Field field = ui.EscapeSequences.class.getField(pieceType);
+                    String value = (String) field.get(null);
+                    printSquare(bgColor, value);
+                } catch (NoSuchFieldException | IllegalAccessException ex) {}
+            }
+            printSquare(null, String.valueOf(row));
+            System.out.print("\n");
+        }
+        printRowHeader(cols);
+    }
 
     private static void parseCommand(String line) {
         var args = line.split(" ");
 
-        ArrayList<String> commandList = new ArrayList<>();
-        for (var arg : args) {
-            commandList.add(arg);
-        }
+        ArrayList<String> commandList = new ArrayList<>(Arrays.asList(args));
 
         String command = commandList.getFirst().toLowerCase();
 
@@ -32,6 +85,14 @@ public class ClientMain {
         } else if (Objects.equals(command, "help")) {
             help();
         } else if (Objects.equals(command, "create")) {
+
+        } else if (Objects.equals(command, "list")) {
+
+        } else if (Objects.equals(command, "join")) {
+            printBoard(chessBoard, "BLACK");
+        } else if (Objects.equals(command, "observe")) {
+            printBoard(chessBoard, "WHITE");
+        } else if (Objects.equals(command, "logout")) {
 
         } else {
             //TODO: ERROR OUT
@@ -67,6 +128,7 @@ public class ClientMain {
     }
 
     public static void main(String[] args) {
+        chessBoard.resetBoard();
         System.out.println("♕ Welcome to 240 chess. Type Help to get started. ♕");
         System.out.print("\n");
         while (!quit) {
