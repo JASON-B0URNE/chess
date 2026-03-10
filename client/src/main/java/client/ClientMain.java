@@ -14,20 +14,26 @@ public class ClientMain {
     private static ChessBoard chessBoard = new ChessBoard();
 
     private static void printSquare(String bgColor, String character) {
-        System.out.print(bgColor + " " + character + " " + RESET_BG_COLOR);
+        if (bgColor != null) {
+            System.out.print(bgColor);
+        }
+        System.out.print(" " + character + " ");
+        if (bgColor != null) {
+            System.out.print(RESET_BG_COLOR);
+        }
     }
 
     private static void printRowHeader(List<Character> cols) {
-        printSquare(null, null);
+        printSquare(null, EMPTY);
         for (char col : cols) {
-            printSquare(null, String.valueOf(col));
+            System.out.print("\u2007" + col + EMPTY + "\u200A");
         }
-        printSquare(null, null);
+        printSquare(null, EMPTY);
         System.out.print("\n");
     }
 
     private static void printBoard(ChessBoard board, String perspective) {
-        List<Character> cols = Arrays.asList('h','g','f','e','e','c','b','a');
+        List<Character> cols = Arrays.asList('h','g','f','e','d','c','b','a');
         List<Integer> rows = Arrays.asList(7,6,5,4,3,2,1,0);
 
         if (Objects.equals(perspective, "BLACK")) {
@@ -37,7 +43,7 @@ public class ClientMain {
 
         printRowHeader(cols);
         for (int row : rows) {
-            printSquare(null, String.valueOf(row));
+            printSquare(null, String.valueOf(row + 1));
             for (int col : rows) {
                 String bgColor;
                 if (row % 2 > 0) {
@@ -55,12 +61,17 @@ public class ClientMain {
                 }
 
                 ChessPiece piece = board.getPiece(new ChessPosition(row + 1, col + 1));
-                String pieceType = piece.getTeamColor() + "_" + piece.getPieceType();
-                try {
-                    Field field = ui.EscapeSequences.class.getField(pieceType);
-                    String value = (String) field.get(null);
-                    printSquare(bgColor, value);
-                } catch (NoSuchFieldException | IllegalAccessException ex) {}
+                if (piece == null) {
+                    printSquare(bgColor, EMPTY);
+                } else {
+                    String pieceType = piece.getTeamColor() + "_" + piece.getPieceType();
+                    try {
+                        Field field = ui.EscapeSequences.class.getField(pieceType);
+                        String value = (String) field.get(null);
+                        printSquare(bgColor, value);
+                    } catch (NoSuchFieldException | IllegalAccessException ex) {
+                    }
+                }
             }
             printSquare(null, String.valueOf(row));
             System.out.print("\n");
