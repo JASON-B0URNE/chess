@@ -185,7 +185,7 @@ public class ClientMain {
 
             help();
         } else if (Objects.equals(command, "create")) {
-            if (!Objects.equals(commandList.size(), 1)) {
+            if (!Objects.equals(commandList.size(), 2)) {
                 invalidCommand();
                 return;
             }
@@ -194,20 +194,13 @@ public class ClientMain {
                 return;
             }
             try {
-                Response response = facade.deleteSession(session.authToken());
+                Response response = facade.createGame(session.authToken(), commandList.get(1));
                 if (!Objects.equals(response.code(), 200)) {
                     handleErrors(response.code());
                 } else {
-                    Map<String, Collection<GameData>> gamesResponse = serializer.fromJson(response.json(), Map.class);
-                    Collection<GameData> games = gamesResponse.get("games");
-                    System.out.print(SET_TEXT_COLOR_MAGENTA);
-                    System.out.printf("%-10s %-20s %-20s %-25s%n",
-                            "Game ID:", "Game Name:", "White:", "Black:");
-                    System.out.print(RESET_TEXT_COLOR);
-                    for (var game : games) {
-                        System.out.printf("%-10s %-20s %-20s %-25s%n",
-                                game.gameID(), game.gameName(), game.whiteUsername(), game.blackUsername());
-                    }
+                    Map<String, Number> gamesResponse = serializer.fromJson(response.json(), Map.class);
+                    Number gameID = gamesResponse.get("gameID");
+                    printSuccess("The game was successfully created.\nGame ID: " + gameID);
                 }
             } catch (Exception ex) {
                 System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
@@ -226,15 +219,28 @@ public class ClientMain {
                 if (!Objects.equals(response.code(), 200)) {
                     handleErrors(response.code());
                 } else {
-                    Map<String, Collection<GameData>> gamesResponse = serializer.fromJson(response.json(), Map.class);
-                    Collection<GameData> games = gamesResponse.get("games");
+                    Map<String, Collection<Map<String,String>>> gamesResponse = serializer.fromJson(response.json(), Map.class);
+                    Collection<Map<String,String>> games = gamesResponse.get("games");
                     System.out.print(SET_TEXT_COLOR_MAGENTA);
-                    System.out.printf("%-10s %-20s %-20s %-25s%n",
+                    System.out.printf("%-10s %-20s %-20s %-20s%n",
                             "Game ID:", "Game Name:", "White:", "Black:");
                     System.out.print(RESET_TEXT_COLOR);
                     for (var game : games) {
-                        System.out.printf("%-10s %-20s %-20s %-25s%n",
-                                game.gameID(), game.gameName(), game.whiteUsername(), game.blackUsername());
+                        String white;
+                        String black;
+                        if (game.get("whiteUsername") == null) {
+                            white = SET_TEXT_COLOR_GREEN + String.format("%-20s", "AVAILABLE") + RESET_TEXT_COLOR;
+                        } else {
+                            white = SET_TEXT_COLOR_RED + String.format("%-20s", game.get("whiteUsername")) + RESET_TEXT_COLOR;
+                        }
+                        if (game.get("blackUsername") == null) {
+                            black = SET_TEXT_COLOR_GREEN + String.format("%-20s", "AVAILABLE") + RESET_TEXT_COLOR;
+                        } else {
+                            black = SET_TEXT_COLOR_RED + String.format("%-20s", game.get("blackUsername")) + RESET_TEXT_COLOR;
+                        }
+
+                        System.out.printf("%-10s %-20s %s %s %n",
+                                game.get("gameID"), game.get("gameName"), white, black);
                     }
                 }
             } catch (Exception ex) {
