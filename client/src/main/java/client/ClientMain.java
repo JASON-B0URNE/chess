@@ -3,6 +3,7 @@ package client;
 import chess.*;
 import com.google.gson.Gson;
 import model.AuthData;
+import model.GameData;
 import requests.Response;
 
 import java.lang.reflect.Field;
@@ -184,14 +185,60 @@ public class ClientMain {
 
             help();
         } else if (Objects.equals(command, "create")) {
+            if (!Objects.equals(commandList.size(), 1)) {
+                invalidCommand();
+                return;
+            }
             if (Objects.equals(status, "LOGGED_OUT")) {
                 notAuthorizedCheck();
                 return;
             }
+            try {
+                Response response = facade.deleteSession(session.authToken());
+                if (!Objects.equals(response.code(), 200)) {
+                    handleErrors(response.code());
+                } else {
+                    Map<String, Collection<GameData>> gamesResponse = serializer.fromJson(response.json(), Map.class);
+                    Collection<GameData> games = gamesResponse.get("games");
+                    System.out.print(SET_TEXT_COLOR_MAGENTA);
+                    System.out.printf("%-10s %-20s %-20s %-25s%n",
+                            "Game ID:", "Game Name:", "White:", "Black:");
+                    System.out.print(RESET_TEXT_COLOR);
+                    for (var game : games) {
+                        System.out.printf("%-10s %-20s %-20s %-25s%n",
+                                game.gameID(), game.gameName(), game.whiteUsername(), game.blackUsername());
+                    }
+                }
+            } catch (Exception ex) {
+                System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
+            }
         } else if (Objects.equals(command, "list")) {
+            if (!Objects.equals(commandList.size(), 1)) {
+                invalidCommand();
+                return;
+            }
             if (Objects.equals(status, "LOGGED_OUT")) {
                 notAuthorizedCheck();
                 return;
+            }
+            try {
+                Response response = facade.getGames(session.authToken());
+                if (!Objects.equals(response.code(), 200)) {
+                    handleErrors(response.code());
+                } else {
+                    Map<String, Collection<GameData>> gamesResponse = serializer.fromJson(response.json(), Map.class);
+                    Collection<GameData> games = gamesResponse.get("games");
+                    System.out.print(SET_TEXT_COLOR_MAGENTA);
+                    System.out.printf("%-10s %-20s %-20s %-25s%n",
+                            "Game ID:", "Game Name:", "White:", "Black:");
+                    System.out.print(RESET_TEXT_COLOR);
+                    for (var game : games) {
+                        System.out.printf("%-10s %-20s %-20s %-25s%n",
+                                game.gameID(), game.gameName(), game.whiteUsername(), game.blackUsername());
+                    }
+                }
+            } catch (Exception ex) {
+                System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
             }
         } else if (Objects.equals(command, "join")) {
             if (Objects.equals(status, "LOGGED_OUT")) {
