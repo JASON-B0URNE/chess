@@ -79,8 +79,11 @@ public class ServerFacade {
     }
 
     public Response createGame(String authToken, String gameName) throws URISyntaxException, IOException, InterruptedException {
+        var body = Map.of("gameName", gameName);
+        var jsonBody = new Gson().toJson(body);
+
         var request = HttpRequest.newBuilder(new URI(this.baseUrl + "game"))
-                .GET()
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .header("Authorization", authToken)
                 .build();
 
@@ -89,13 +92,17 @@ public class ServerFacade {
         return new Response(httpResponse.statusCode(), httpResponse.body());
     }
 
-//    var request = HttpRequest.newBuilder(uri)
-//            .GET()
-//            .header("Authorization", "secret1")
-//            .build();
-//
-//    var response = client.send(request, BodyHandlers.ofString());
-//    var headers = response.headers();
-//    OptionalLong length = response.firstValueAsLong("Content-Length");
-//    Optional<String> type = response.firstValue("Content-Type");
+    public Response joinGame(String authToken, String playerColor, Number gameID) throws URISyntaxException, IOException, InterruptedException {
+        var body = Map.of("playerColor", playerColor, "gameID", gameID);
+        var jsonBody = new Gson().toJson(body);
+
+        var request = HttpRequest.newBuilder(new URI(this.baseUrl + "game"))
+                .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .header("Authorization", authToken)
+                .build();
+
+        HttpResponse<String> httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        return new Response(httpResponse.statusCode(), httpResponse.body());
+    }
 }

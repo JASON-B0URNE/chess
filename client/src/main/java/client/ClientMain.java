@@ -1,6 +1,9 @@
 package client;
 
 import chess.*;
+import com.google.gson.Gson;
+import model.AuthData;
+import requests.Response;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -11,6 +14,9 @@ public class ClientMain {
     private static String status = "LOGGED_OUT";
     private static boolean quit = false;
     private static ChessBoard chessBoard = new ChessBoard();
+    private static ServerFacade facade;
+    private static String username;
+    private static AuthData session;
 
     private static void printSquare(String bgColor, String character) {
         if (bgColor != null) {
@@ -87,22 +93,95 @@ public class ClientMain {
         System.out.print(SET_TEXT_COLOR_RED + "ERROR: Not authorized. Please login first." + RESET_TEXT_COLOR + "\n");
     }
 
+    private static void handleErrors(int code) {
+        System.out.print(SET_TEXT_COLOR_RED);
+        if (Objects.equals(code, 500)) {
+            System.out.print("ERROR: Database error.");
+        } else if (Objects.equals(code, 400)) {
+            System.out.print("ERROR: Bad request.");
+        } else if (Objects.equals(code, 401)) {
+            System.out.print("ERROR: Unauthorized request.");
+        } else if (Objects.equals(code, 403)) {
+            System.out.print("ERROR: Item already exists in database.");
+        }
+        System.out.print(RESET_TEXT_COLOR + "\n");
+    }
 
-    private static void parseCommand(String line) {
+    private static void printSuccess(String message) {
+        System.out.print(SET_TEXT_COLOR_GREEN);
+        System.out.print("SUCCESS: " + message);
+        System.out.print(RESET_TEXT_COLOR + "\n");
+    }
+
+    private void parseCommand(String line) {
         var args = line.split(" ");
+        var serializer = new Gson();
 
         ArrayList<String> commandList = new ArrayList<>(Arrays.asList(args));
 
         String command = commandList.getFirst().toLowerCase();
 
         if (Objects.equals(command, "register")) {
-            //TODO: REGISTER
+            if (!Objects.equals(commandList.size(), 4) ||
+            Objects.equals(status, "LOGGED_IN")) {
+                invalidCommand();
+                return;
+            }
+            try {
+                Response response = facade.createUser(commandList.get(1), commandList.get(2), commandList.get(3));
+                if (!Objects.equals(response.code(), 200)) {
+                    handleErrors(response.code());
+                } else {
+                    session = serializer.fromJson(response.json(), AuthData.class);
+                    printSuccess("User was created successfully.");
+                    status = "LOGGED_IN";
+                }
+            } catch (Exception ex) {
+                System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
+            }
         } else if (Objects.equals(command, "login")) {
-            //TODO: LOGIN
+            if (!Objects.equals(commandList.size(), 3) ||
+            Objects.equals(status, "LOGGED_IN")) {
+                invalidCommand();
+                return;
+            }
+            try {
+                Response response = facade.createSession(commandList.get(1), commandList.get(2));
+                if (!Objects.equals(response.code(), 200)) {
+                    handleErrors(response.code());
+                } else {
+                    session = serializer.fromJson(response.json(), AuthData.class);
+                    printSuccess("Successful login.");
+                    status = "LOGGED_IN";
+                }
+            } catch (Exception ex) {
+                System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
+            }
         } else if (Objects.equals(command, "quit")) {
+            if (!Objects.equals(commandList.size(), 1)) {
+                invalidCommand();
+                return;
+            }
             quit = true;
-            //TODO: QUIT
+            if (Objects.equals(status, "LOGGED_IN")) {
+                try {
+                    Response response = facade.deleteSession(session.authToken());
+                    if (!Objects.equals(response.code(), 200)) {
+                        handleErrors(response.code());
+                    } else {
+                        session = serializer.fromJson(response.json(), AuthData.class);
+                        status = "LOGGED_OUT";
+                    }
+                } catch (Exception ex) {
+                    System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
+                }
+            }
         } else if (Objects.equals(command, "help")) {
+            if (!Objects.equals(commandList.size(), 1)) {
+                invalidCommand();
+                return;
+            }
+
             help();
         } else if (Objects.equals(command, "create")) {
             if (Objects.equals(status, "LOGGED_OUT")) {
@@ -129,7 +208,25 @@ public class ClientMain {
 
             printBoard(chessBoard, "WHITE");
         } else if (Objects.equals(command, "logout")) {
-
+            if (!Objects.equals(commandList.size(), 1)) {
+                invalidCommand();
+                return;
+            }
+            if (Objects.equals(status, "LOGGED_OUT")) {
+                notAuthorizedCheck();
+                return;
+            }
+            try {
+                Response response = facade.deleteSession(session.authToken());
+                if (!Objects.equals(response.code(), 200)) {
+                    handleErrors(response.code());
+                } else {
+                    session = serializer.fromJson(response.json(), AuthData.class);
+                    status = "LOGGED_OUT";
+                }
+            } catch (Exception ex) {
+                System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
+            }
         } else {
             invalidCommand();
         }
@@ -163,9 +260,9 @@ public class ClientMain {
         }
     }
 
-    public static void main(String[] args) {
+    public void main(String[] args) {
         chessBoard.resetBoard();
-        ServerFacade facade = new ServerFacade(8080);
+        this.facade = new ServerFacade(8080);
         System.out.println("♕ Welcome to 240 chess. Type Help to get started. ♕");
         System.out.print("\n");
         while (!quit) {
