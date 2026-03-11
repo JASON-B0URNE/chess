@@ -39,7 +39,6 @@ public class Server {
 
         javalin = Javalin.create(config -> {config.staticFiles.add("web");})
             .delete("/db", ctx -> {
-
                 Response response = authService.clear();
                 ctx.status(response.code()).result(response.json());
             })

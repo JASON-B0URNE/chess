@@ -5,7 +5,6 @@ import chess.*;
 import java.lang.reflect.Field;
 import java.util.*;
 
-import static java.io.IO.print;
 import static ui.EscapeSequences.*;
 
 public class ClientMain {
@@ -79,6 +78,16 @@ public class ClientMain {
         printRowHeader(cols);
     }
 
+    private static void invalidCommand() {
+        System.out.print(SET_TEXT_COLOR_RED + "ERROR: Invalid command." + RESET_TEXT_COLOR + "\n\n");
+        help();
+    }
+
+    private static void notAuthorizedCheck() {
+        System.out.print(SET_TEXT_COLOR_RED + "ERROR: Not authorized. Please login first." + RESET_TEXT_COLOR + "\n");
+    }
+
+
     private static void parseCommand(String line) {
         var args = line.split(" ");
 
@@ -96,17 +105,33 @@ public class ClientMain {
         } else if (Objects.equals(command, "help")) {
             help();
         } else if (Objects.equals(command, "create")) {
-
+            if (Objects.equals(status, "LOGGED_OUT")) {
+                notAuthorizedCheck();
+                return;
+            }
         } else if (Objects.equals(command, "list")) {
-
+            if (Objects.equals(status, "LOGGED_OUT")) {
+                notAuthorizedCheck();
+                return;
+            }
         } else if (Objects.equals(command, "join")) {
+            if (Objects.equals(status, "LOGGED_OUT")) {
+                notAuthorizedCheck();
+                return;
+            }
+
             printBoard(chessBoard, "BLACK");
         } else if (Objects.equals(command, "observe")) {
+            if (Objects.equals(status, "LOGGED_OUT")) {
+                notAuthorizedCheck();
+                return;
+            }
+
             printBoard(chessBoard, "WHITE");
         } else if (Objects.equals(command, "logout")) {
 
         } else {
-            //TODO: ERROR OUT
+            invalidCommand();
         }
     }
 
@@ -140,6 +165,7 @@ public class ClientMain {
 
     public static void main(String[] args) {
         chessBoard.resetBoard();
+        ServerFacade facade = new ServerFacade(8080);
         System.out.println("♕ Welcome to 240 chess. Type Help to get started. ♕");
         System.out.print("\n");
         while (!quit) {
