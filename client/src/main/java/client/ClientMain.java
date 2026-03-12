@@ -154,6 +154,179 @@ public class ClientMain {
         }
     }
 
+    private void observe(ArrayList<String> commandList) {
+        if (!Objects.equals(commandList.size(), 2)) {
+            invalidCommand();
+            return;
+        }
+        if(listGames == null || listGames.isEmpty()) {
+            System.out.print(SET_TEXT_COLOR_RED + "ERROR: No games have been listed. Run the list command." + RESET_TEXT_COLOR + "\n");
+            return;
+        }
+
+        if (Objects.equals(status, "LOGGED_OUT")) {
+            notAuthorizedCheck();
+            return;
+        }
+
+        try {
+            int gameID = Integer.parseInt(commandList.get(1));
+
+            if (gameID > listGames.size() || gameID == 0) {
+                System.out.print(SET_TEXT_COLOR_RED + "ERROR: Game ID does not exist." + RESET_TEXT_COLOR + "\n");
+                return;
+            }
+
+            printBoard(chessBoard, "WHITE");
+        } catch (Exception e) {
+            invalidCommand();
+        }
+    }
+
+    private void join(ArrayList<String> commandList) {
+        if (!Objects.equals(commandList.size(), 3) ||
+                !(Objects.equals(commandList.get(2), "WHITE") || Objects.equals(commandList.get(2), "BLACK"))) {
+            invalidCommand();
+            return;
+        }
+        if (Objects.equals(status, "LOGGED_OUT")) {
+            notAuthorizedCheck();
+            return;
+        }
+        try {
+            int gameID = Integer.parseInt(commandList.get(1));
+            Response response = facade.joinGame(session.authToken(), commandList.get(2), gameID);
+            if (!Objects.equals(response.code(), 200)) {
+                handleErrors(response.code());
+            } else {
+                printBoard(chessBoard, commandList.get(2));
+            }
+        } catch (Exception e) {
+            invalidCommand();
+        }
+    }
+
+    private void logout(ArrayList<String> commandList) {
+        var serializer = new Gson();
+        if (!Objects.equals(commandList.size(), 1)) {
+            invalidCommand();
+            return;
+        }
+        if (Objects.equals(status, "LOGGED_OUT")) {
+            notAuthorizedCheck();
+            return;
+        }
+        try {
+            Response response = facade.deleteSession(session.authToken());
+            if (!Objects.equals(response.code(), 200)) {
+                handleErrors(response.code());
+            } else {
+                session = serializer.fromJson(response.json(), AuthData.class);
+                status = "LOGGED_OUT";
+            }
+        } catch (Exception ex) {
+            System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
+        }
+    }
+
+    private void list(ArrayList<String> commandList) {
+        var serializer = new Gson();
+
+        if (!Objects.equals(commandList.size(), 1)) {
+            invalidCommand();
+            return;
+        }
+        if (Objects.equals(status, "LOGGED_OUT")) {
+            notAuthorizedCheck();
+            return;
+        }
+        try {
+            Response response = facade.getGames(session.authToken());
+            if (!Objects.equals(response.code(), 200)) {
+                handleErrors(response.code());
+            } else {
+                Map<String, Collection<Map<String, String>>> gamesResponse = serializer.fromJson(response.json(), Map.class);
+                Collection<Map<String, String>> games = gamesResponse.get("games");
+                listGames = games;
+                System.out.print(SET_TEXT_COLOR_MAGENTA);
+                System.out.printf("%-10s %-20s %-20s %-20s%n",
+                        "Game ID:", "Game Name:", "White:", "Black:");
+                System.out.print(RESET_TEXT_COLOR);
+                for (var game : games) {
+
+                    String white;
+                    String black;
+                    if (game.get("whiteUsername") == null) {
+                        white = SET_TEXT_COLOR_GREEN + String.format("%-20s", "AVAILABLE") + RESET_TEXT_COLOR;
+                    } else {
+                        white = SET_TEXT_COLOR_RED + String.format("%-20s", game.get("whiteUsername")) + RESET_TEXT_COLOR;
+                    }
+                    if (game.get("blackUsername") == null) {
+                        black = SET_TEXT_COLOR_GREEN + String.format("%-20s", "AVAILABLE") + RESET_TEXT_COLOR;
+                    } else {
+                        black = SET_TEXT_COLOR_RED + String.format("%-20s", game.get("blackUsername")) + RESET_TEXT_COLOR;
+                    }
+
+                    Object parse = game.get("gameID");
+                    int gameID = ((Number) parse).intValue();
+
+                    System.out.printf("%-10s %-20s %s %s %n",
+                            gameID, game.get("gameName"), white, black);
+                }
+            }
+        } catch (Exception ex) {
+            System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
+        }
+    }
+
+    private void create(ArrayList<String> commandList) {
+        var serializer = new Gson();
+
+        if (!Objects.equals(commandList.size(), 2)) {
+            invalidCommand();
+            return;
+        }
+        if (Objects.equals(status, "LOGGED_OUT")) {
+            notAuthorizedCheck();
+            return;
+        }
+        try {
+            Response response = facade.createGame(session.authToken(), commandList.get(1));
+            if (!Objects.equals(response.code(), 200)) {
+                handleErrors(response.code());
+            } else {
+                Map<String, Number> gamesResponse = serializer.fromJson(response.json(), Map.class);
+                Number gameID = gamesResponse.get("gameID");
+                printSuccess("The game was successfully created.\nGame ID: " + gameID.intValue());
+            }
+        } catch (Exception ex) {
+            System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
+        }
+    }
+
+    private void quit(ArrayList<String> commandList) {
+        var serializer = new Gson();
+
+        if (!Objects.equals(commandList.size(), 1)) {
+            invalidCommand();
+            return;
+        }
+        quit = true;
+        if (Objects.equals(status, "LOGGED_IN")) {
+            try {
+                Response response = facade.deleteSession(session.authToken());
+                if (!Objects.equals(response.code(), 200)) {
+                    handleErrors(response.code());
+                } else {
+                    session = serializer.fromJson(response.json(), AuthData.class);
+                    status = "LOGGED_OUT";
+                }
+            } catch (Exception ex) {
+                System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
+            }
+        }
+    }
+
     private void parseCommand(String line) {
         var args = line.split(" ");
         var serializer = new Gson();
@@ -199,24 +372,7 @@ public class ClientMain {
                 System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
             }
         } else if (Objects.equals(command, "quit")) {
-            if (!Objects.equals(commandList.size(), 1)) {
-                invalidCommand();
-                return;
-            }
-            quit = true;
-            if (Objects.equals(status, "LOGGED_IN")) {
-                try {
-                    Response response = facade.deleteSession(session.authToken());
-                    if (!Objects.equals(response.code(), 200)) {
-                        handleErrors(response.code());
-                    } else {
-                        session = serializer.fromJson(response.json(), AuthData.class);
-                        status = "LOGGED_OUT";
-                    }
-                } catch (Exception ex) {
-                    System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
-                }
-            }
+            quit(commandList);
         } else if (Objects.equals(command, "help")) {
             if (!Objects.equals(commandList.size(), 1)) {
                 invalidCommand();
@@ -225,140 +381,15 @@ public class ClientMain {
 
             help();
         } else if (Objects.equals(command, "create")) {
-            if (!Objects.equals(commandList.size(), 2)) {
-                invalidCommand();
-                return;
-            }
-            if (Objects.equals(status, "LOGGED_OUT")) {
-                notAuthorizedCheck();
-                return;
-            }
-            try {
-                Response response = facade.createGame(session.authToken(), commandList.get(1));
-                if (!Objects.equals(response.code(), 200)) {
-                    handleErrors(response.code());
-                } else {
-                    Map<String, Number> gamesResponse = serializer.fromJson(response.json(), Map.class);
-                    Number gameID = gamesResponse.get("gameID");
-                    printSuccess("The game was successfully created.\nGame ID: " + gameID.intValue());
-                }
-            } catch (Exception ex) {
-                System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
-            }
+            create(commandList);
         } else if (Objects.equals(command, "list")) {
-            if (!Objects.equals(commandList.size(), 1)) {
-                invalidCommand();
-                return;
-            }
-            if (Objects.equals(status, "LOGGED_OUT")) {
-                notAuthorizedCheck();
-                return;
-            }
-            try {
-                Response response = facade.getGames(session.authToken());
-                if (!Objects.equals(response.code(), 200)) {
-                    handleErrors(response.code());
-                } else {
-                    Map<String, Collection<Map<String, String>>> gamesResponse = serializer.fromJson(response.json(), Map.class);
-                    Collection<Map<String, String>> games = gamesResponse.get("games");
-                    listGames = games;
-                    System.out.print(SET_TEXT_COLOR_MAGENTA);
-                    System.out.printf("%-10s %-20s %-20s %-20s%n",
-                            "Game ID:", "Game Name:", "White:", "Black:");
-                    System.out.print(RESET_TEXT_COLOR);
-                    for (var game : games) {
-
-                        String white;
-                        String black;
-                        if (game.get("whiteUsername") == null) {
-                            white = SET_TEXT_COLOR_GREEN + String.format("%-20s", "AVAILABLE") + RESET_TEXT_COLOR;
-                        } else {
-                            white = SET_TEXT_COLOR_RED + String.format("%-20s", game.get("whiteUsername")) + RESET_TEXT_COLOR;
-                        }
-                        if (game.get("blackUsername") == null) {
-                            black = SET_TEXT_COLOR_GREEN + String.format("%-20s", "AVAILABLE") + RESET_TEXT_COLOR;
-                        } else {
-                            black = SET_TEXT_COLOR_RED + String.format("%-20s", game.get("blackUsername")) + RESET_TEXT_COLOR;
-                        }
-
-                        Object parse = game.get("gameID");
-                        int gameID = ((Number) parse).intValue();
-
-                        System.out.printf("%-10s %-20s %s %s %n",
-                                gameID, game.get("gameName"), white, black);
-                    }
-                }
-            } catch (Exception ex) {
-                System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
-            }
+            list(commandList);
         } else if (Objects.equals(command, "join")) {
-            if (!Objects.equals(commandList.size(), 3) ||
-                    !(Objects.equals(commandList.get(2), "WHITE") || Objects.equals(commandList.get(2), "BLACK"))) {
-                invalidCommand();
-                return;
-            }
-            if (Objects.equals(status, "LOGGED_OUT")) {
-                notAuthorizedCheck();
-                return;
-            }
-            try {
-                int gameID = Integer.parseInt(commandList.get(1));
-                Response response = facade.joinGame(session.authToken(), commandList.get(2), gameID);
-                if (!Objects.equals(response.code(), 200)) {
-                    handleErrors(response.code());
-                } else {
-                    printBoard(chessBoard, commandList.get(2));
-                }
-            } catch (Exception e) {
-                invalidCommand();
-            }
+            join(commandList);
         } else if (Objects.equals(command, "observe")) {
-            if (!Objects.equals(commandList.size(), 2)) {
-                invalidCommand();
-                return;
-            }
-            if(listGames == null || listGames.isEmpty()) {
-                System.out.print(SET_TEXT_COLOR_RED + "ERROR: No games have been listed. Run the list command." + RESET_TEXT_COLOR + "\n");
-                return;
-            }
-
-            if (Objects.equals(status, "LOGGED_OUT")) {
-                notAuthorizedCheck();
-                return;
-            }
-
-            try {
-                int gameID = Integer.parseInt(commandList.get(1));
-
-                if (gameID > listGames.size() || gameID == 0) {
-                    System.out.print(SET_TEXT_COLOR_RED + "ERROR: Game ID does not exist." + RESET_TEXT_COLOR + "\n");
-                    return;
-                }
-
-                printBoard(chessBoard, "WHITE");
-            } catch (Exception e) {
-                invalidCommand();
-            }
+            observe(commandList);
         } else if (Objects.equals(command, "logout")) {
-            if (!Objects.equals(commandList.size(), 1)) {
-                invalidCommand();
-                return;
-            }
-            if (Objects.equals(status, "LOGGED_OUT")) {
-                notAuthorizedCheck();
-                return;
-            }
-            try {
-                Response response = facade.deleteSession(session.authToken());
-                if (!Objects.equals(response.code(), 200)) {
-                    handleErrors(response.code());
-                } else {
-                    session = serializer.fromJson(response.json(), AuthData.class);
-                    status = "LOGGED_OUT";
-                }
-            } catch (Exception ex) {
-                System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
-            }
+            logout(commandList);
         } else if (Objects.equals(command, "clear")) {
             clearDatabase();
         } else {
