@@ -114,6 +114,19 @@ public class ClientMain {
         System.out.print(RESET_TEXT_COLOR + "\n");
     }
 
+    private static void clearDatabase() {
+        try {
+            Response response = facade.clear();
+            if (!Objects.equals(response.code(), 200)) {
+                handleErrors(response.code());
+            } else {
+                printSuccess("Database cleared successfully.");
+            }
+        } catch (Exception ex) {
+            System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
+        }
+    }
+
     private void parseCommand(String line) {
         var args = line.split(" ");
         var serializer = new Gson();
@@ -124,7 +137,7 @@ public class ClientMain {
 
         if (Objects.equals(command, "register")) {
             if (!Objects.equals(commandList.size(), 4) ||
-            Objects.equals(status, "LOGGED_IN")) {
+                    Objects.equals(status, "LOGGED_IN")) {
                 invalidCommand();
                 return;
             }
@@ -142,7 +155,7 @@ public class ClientMain {
             }
         } else if (Objects.equals(command, "login")) {
             if (!Objects.equals(commandList.size(), 3) ||
-            Objects.equals(status, "LOGGED_IN")) {
+                    Objects.equals(status, "LOGGED_IN")) {
                 invalidCommand();
                 return;
             }
@@ -200,7 +213,7 @@ public class ClientMain {
                 } else {
                     Map<String, Number> gamesResponse = serializer.fromJson(response.json(), Map.class);
                     Number gameID = gamesResponse.get("gameID");
-                    printSuccess("The game was successfully created.\nGame ID: " + gameID);
+                    printSuccess("The game was successfully created.\nGame ID: " + gameID.intValue());
                 }
             } catch (Exception ex) {
                 System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
@@ -219,13 +232,14 @@ public class ClientMain {
                 if (!Objects.equals(response.code(), 200)) {
                     handleErrors(response.code());
                 } else {
-                    Map<String, Collection<Map<String,String>>> gamesResponse = serializer.fromJson(response.json(), Map.class);
-                    Collection<Map<String,String>> games = gamesResponse.get("games");
+                    Map<String, Collection<Map<String, String>>> gamesResponse = serializer.fromJson(response.json(), Map.class);
+                    Collection<Map<String, String>> games = gamesResponse.get("games");
                     System.out.print(SET_TEXT_COLOR_MAGENTA);
                     System.out.printf("%-10s %-20s %-20s %-20s%n",
                             "Game ID:", "Game Name:", "White:", "Black:");
                     System.out.print(RESET_TEXT_COLOR);
                     for (var game : games) {
+
                         String white;
                         String black;
                         if (game.get("whiteUsername") == null) {
@@ -239,20 +253,37 @@ public class ClientMain {
                             black = SET_TEXT_COLOR_RED + String.format("%-20s", game.get("blackUsername")) + RESET_TEXT_COLOR;
                         }
 
+                        Object parse = game.get("gameID");
+                        int gameID = ((Number) parse).intValue();
+
                         System.out.printf("%-10s %-20s %s %s %n",
-                                game.get("gameID"), game.get("gameName"), white, black);
+                                gameID, game.get("gameName"), white, black);
                     }
                 }
             } catch (Exception ex) {
                 System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
             }
         } else if (Objects.equals(command, "join")) {
+            if (!Objects.equals(commandList.size(), 3) ||
+                    !(Objects.equals(commandList.get(2), "WHITE") || Objects.equals(commandList.get(2), "BLACK"))) {
+                invalidCommand();
+                return;
+            }
             if (Objects.equals(status, "LOGGED_OUT")) {
                 notAuthorizedCheck();
                 return;
             }
-
-            printBoard(chessBoard, "BLACK");
+            try {
+                int gameID = Integer.parseInt(commandList.get(1));
+                Response response = facade.joinGame(session.authToken(), commandList.get(2), gameID);
+                if (!Objects.equals(response.code(), 200)) {
+                    handleErrors(response.code());
+                } else {
+                    printBoard(chessBoard, "BLACK");
+                }
+            } catch (Exception e) {
+                invalidCommand();
+            }
         } else if (Objects.equals(command, "observe")) {
             if (Objects.equals(status, "LOGGED_OUT")) {
                 notAuthorizedCheck();
@@ -280,6 +311,8 @@ public class ClientMain {
             } catch (Exception ex) {
                 System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
             }
+        } else if (Objects.equals(command, "clear")) {
+            clearDatabase();
         } else {
             invalidCommand();
         }
@@ -315,7 +348,7 @@ public class ClientMain {
 
     public void main(String[] args) {
         chessBoard.resetBoard();
-        this.facade = new ServerFacade(8080);
+        facade = new ServerFacade(8080);
         System.out.println("♕ Welcome to 240 chess. Type Help to get started. ♕");
         System.out.print("\n");
         while (!quit) {

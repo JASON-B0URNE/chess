@@ -92,7 +92,7 @@ public class ServerFacade {
         return new Response(httpResponse.statusCode(), httpResponse.body());
     }
 
-    public Response joinGame(String authToken, String playerColor, Number gameID) throws URISyntaxException, IOException, InterruptedException {
+    public Response joinGame(String authToken, String playerColor, int gameID) throws URISyntaxException, IOException, InterruptedException {
         var body = Map.of("playerColor", playerColor, "gameID", gameID);
         var jsonBody = new Gson().toJson(body);
 
