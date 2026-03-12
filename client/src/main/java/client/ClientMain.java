@@ -327,6 +327,50 @@ public class ClientMain {
         }
     }
 
+    private void login(ArrayList<String> commandList) {
+        var serializer = new Gson();
+
+        if (!Objects.equals(commandList.size(), 3) ||
+                Objects.equals(status, "LOGGED_IN")) {
+            invalidCommand();
+            return;
+        }
+        try {
+            Response response = facade.createSession(commandList.get(1), commandList.get(2));
+            if (!Objects.equals(response.code(), 200)) {
+                handleErrors(response.code());
+            } else {
+                session = serializer.fromJson(response.json(), AuthData.class);
+                printSuccess("Successful login.");
+                status = "LOGGED_IN";
+            }
+        } catch (Exception ex) {
+            System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
+        }
+    }
+
+    private void register(ArrayList<String> commandList) {
+        var serializer = new Gson();
+
+        if (!Objects.equals(commandList.size(), 4) ||
+                Objects.equals(status, "LOGGED_IN")) {
+            invalidCommand();
+            return;
+        }
+        try {
+            Response response = facade.createUser(commandList.get(1), commandList.get(2), commandList.get(3));
+            if (!Objects.equals(response.code(), 200)) {
+                handleErrors(response.code());
+            } else {
+                session = serializer.fromJson(response.json(), AuthData.class);
+                printSuccess("User was created successfully.");
+                status = "LOGGED_IN";
+            }
+        } catch (Exception ex) {
+            System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
+        }
+    }
+
     private void parseCommand(String line) {
         var args = line.split(" ");
         var serializer = new Gson();
@@ -336,41 +380,9 @@ public class ClientMain {
         String command = commandList.getFirst().toLowerCase();
 
         if (Objects.equals(command, "register")) {
-            if (!Objects.equals(commandList.size(), 4) ||
-                    Objects.equals(status, "LOGGED_IN")) {
-                invalidCommand();
-                return;
-            }
-            try {
-                Response response = facade.createUser(commandList.get(1), commandList.get(2), commandList.get(3));
-                if (!Objects.equals(response.code(), 200)) {
-                    handleErrors(response.code());
-                } else {
-                    session = serializer.fromJson(response.json(), AuthData.class);
-                    printSuccess("User was created successfully.");
-                    status = "LOGGED_IN";
-                }
-            } catch (Exception ex) {
-                System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
-            }
+            register(commandList);
         } else if (Objects.equals(command, "login")) {
-            if (!Objects.equals(commandList.size(), 3) ||
-                    Objects.equals(status, "LOGGED_IN")) {
-                invalidCommand();
-                return;
-            }
-            try {
-                Response response = facade.createSession(commandList.get(1), commandList.get(2));
-                if (!Objects.equals(response.code(), 200)) {
-                    handleErrors(response.code());
-                } else {
-                    session = serializer.fromJson(response.json(), AuthData.class);
-                    printSuccess("Successful login.");
-                    status = "LOGGED_IN";
-                }
-            } catch (Exception ex) {
-                System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
-            }
+            login(commandList);
         } else if (Objects.equals(command, "quit")) {
             quit(commandList);
         } else if (Objects.equals(command, "help")) {
