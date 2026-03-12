@@ -307,19 +307,19 @@ public class ClientMain {
                 if (!Objects.equals(response.code(), 200)) {
                     handleErrors(response.code());
                 } else {
-                    printBoard(chessBoard, "BLACK");
+                    printBoard(chessBoard, commandList.get(2));
                 }
             } catch (Exception e) {
                 invalidCommand();
             }
         } else if (Objects.equals(command, "observe")) {
-            if (!Objects.equals(commandList.size(), 2) ||
-                    !(Objects.equals(commandList.get(2), "WHITE") || Objects.equals(commandList.get(2), "BLACK"))) {
+            if (!Objects.equals(commandList.size(), 2)) {
                 invalidCommand();
                 return;
             }
-            if(listGames.isEmpty()) {
+            if(listGames == null || listGames.isEmpty()) {
                 System.out.print(SET_TEXT_COLOR_RED + "ERROR: No games have been listed. Run the list command." + RESET_TEXT_COLOR + "\n");
+                return;
             }
 
             if (Objects.equals(status, "LOGGED_OUT")) {
@@ -330,7 +330,7 @@ public class ClientMain {
             try {
                 int gameID = Integer.parseInt(commandList.get(1));
 
-                if (gameID > listGames.size()) {
+                if (gameID > listGames.size() || gameID == 0) {
                     System.out.print(SET_TEXT_COLOR_RED + "ERROR: Game ID does not exist." + RESET_TEXT_COLOR + "\n");
                     return;
                 }
