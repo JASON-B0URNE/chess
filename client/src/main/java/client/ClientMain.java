@@ -66,30 +66,33 @@ public class ClientMain {
     }
 
     private static void printBoard(ChessBoard board, String perspective) {
-        List<Character> cols = Arrays.asList('h','g','f','e','d','c','b','a');
+        List<Character> cols = Arrays.asList('a','b','c','d','e','f','g','h');
         List<Integer> rows = Arrays.asList(7,6,5,4,3,2,1,0);
+        List<Integer> reverseRows = Arrays.asList(0,1,2,3,4,5,6,7);
 
         if (Objects.equals(perspective, "BLACK")) {
             Collections.reverse(cols);
             Collections.reverse(rows);
+            Collections.reverse(reverseRows);
+
         }
 
         printRowHeader(cols);
         for (int row : rows) {
             printSquare(null, String.valueOf(row + 1));
-            for (int col : rows) {
+            for (int col : reverseRows) {
                 String bgColor;
                 if (row % 2 > 0) {
                     if (col % 2 > 0) {
-                        bgColor = SET_BG_COLOR_LIGHT_GREY;
-                    } else {
                         bgColor = SET_BG_COLOR_DARK_GREY;
+                    } else {
+                        bgColor = SET_BG_COLOR_LIGHT_GREY;
                     }
                 } else {
                     if (col % 2 > 0) {
-                        bgColor = SET_BG_COLOR_DARK_GREY;
-                    } else {
                         bgColor = SET_BG_COLOR_LIGHT_GREY;
+                    } else {
+                        bgColor = SET_BG_COLOR_DARK_GREY;
                     }
                 }
 
