@@ -206,16 +206,9 @@ public class ClientMain {
         }
     }
 
-    private void logout(ArrayList<String> commandList) {
+    private void deleteSession() {
         var serializer = new Gson();
-        if (!Objects.equals(commandList.size(), 1)) {
-            invalidCommand();
-            return;
-        }
-        if (Objects.equals(status, "LOGGED_OUT")) {
-            notAuthorizedCheck();
-            return;
-        }
+
         try {
             Response response = facade.deleteSession(session.authToken());
             if (!Objects.equals(response.code(), 200)) {
@@ -227,6 +220,19 @@ public class ClientMain {
         } catch (Exception ex) {
             System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
         }
+    }
+
+    private void logout(ArrayList<String> commandList) {
+        if (!Objects.equals(commandList.size(), 1)) {
+            invalidCommand();
+            return;
+        }
+        if (Objects.equals(status, "LOGGED_OUT")) {
+            notAuthorizedCheck();
+            return;
+        }
+
+        deleteSession();
     }
 
     private void list(ArrayList<String> commandList) {
@@ -313,17 +319,7 @@ public class ClientMain {
         }
         quit = true;
         if (Objects.equals(status, "LOGGED_IN")) {
-            try {
-                Response response = facade.deleteSession(session.authToken());
-                if (!Objects.equals(response.code(), 200)) {
-                    handleErrors(response.code());
-                } else {
-                    session = serializer.fromJson(response.json(), AuthData.class);
-                    status = "LOGGED_OUT";
-                }
-            } catch (Exception ex) {
-                System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
-            }
+            deleteSession();
         }
     }
 
