@@ -87,9 +87,14 @@ public class ServerFacadeTests {
     @Order(4)
     public void createSessionPos() throws Exception {
         var serializer = new Gson();
-        Response response = facade.createSession("username", "password");
+        Response response = facade.createUser("username6", "password", "email");
 
         AuthData session = serializer.fromJson(response.json(), AuthData.class);
+        facade.deleteSession(session.authToken());
+
+        response = facade.createSession("username6", "password");
+
+        session = serializer.fromJson(response.json(), AuthData.class);
         facade.deleteSession(session.authToken());
 
         Assertions.assertEquals(200, response.code());
