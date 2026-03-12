@@ -3,7 +3,6 @@ package client;
 import chess.*;
 import com.google.gson.Gson;
 import model.AuthData;
-import model.GameData;
 import requests.Response;
 
 import java.lang.reflect.Field;
@@ -16,8 +15,36 @@ public class ClientMain {
     private static boolean quit = false;
     private static ChessBoard chessBoard = new ChessBoard();
     private static ServerFacade facade;
-    private static String username;
     private static AuthData session;
+    private static Collection<Map<String, String>> listGames;
+
+    private static void help() {
+        if (Objects.equals(status, "LOGGED_IN")) {
+            System.out.print(SET_TEXT_COLOR_BLUE + "create <NAME>" + RESET_TEXT_COLOR);
+            System.out.print(" - a game\n");
+            System.out.print(SET_TEXT_COLOR_BLUE + "list" + RESET_TEXT_COLOR);
+            System.out.print(" - games\n");
+            System.out.print(SET_TEXT_COLOR_BLUE + "join <ID> [WHITE|BLACK]" + RESET_TEXT_COLOR);
+            System.out.print(" - a game\n");
+            System.out.print(SET_TEXT_COLOR_BLUE + "observe <ID>" + RESET_TEXT_COLOR);
+            System.out.print(" - a game\n");
+            System.out.print(SET_TEXT_COLOR_BLUE + "logout" + RESET_TEXT_COLOR);
+            System.out.print(" - when you are done\n");
+            System.out.print(SET_TEXT_COLOR_BLUE + "quit" + RESET_TEXT_COLOR);
+            System.out.print(" - playing chess\n");
+            System.out.print(SET_TEXT_COLOR_BLUE + "help" + RESET_TEXT_COLOR);
+            System.out.print(" - with possible commands\n");
+        } else {
+            System.out.print(SET_TEXT_COLOR_BLUE + "register <USERNAME> <PASSWORD> <EMAIL>" + RESET_TEXT_COLOR);
+            System.out.print(" - to create an account\n");
+            System.out.print(SET_TEXT_COLOR_BLUE + "login <USERNAME> <PASSWORD>" + RESET_TEXT_COLOR);
+            System.out.print(" - to play chess\n");
+            System.out.print(SET_TEXT_COLOR_BLUE + "quit" + RESET_TEXT_COLOR);
+            System.out.print(" - playing chess\n");
+            System.out.print(SET_TEXT_COLOR_BLUE + "help" + RESET_TEXT_COLOR);
+            System.out.print(" - with possible commands\n");
+        }
+    }
 
     private static void printSquare(String bgColor, String character) {
         if (bgColor != null) {
@@ -234,6 +261,7 @@ public class ClientMain {
                 } else {
                     Map<String, Collection<Map<String, String>>> gamesResponse = serializer.fromJson(response.json(), Map.class);
                     Collection<Map<String, String>> games = gamesResponse.get("games");
+                    listGames = games;
                     System.out.print(SET_TEXT_COLOR_MAGENTA);
                     System.out.printf("%-10s %-20s %-20s %-20s%n",
                             "Game ID:", "Game Name:", "White:", "Black:");
@@ -285,12 +313,32 @@ public class ClientMain {
                 invalidCommand();
             }
         } else if (Objects.equals(command, "observe")) {
+            if (!Objects.equals(commandList.size(), 2) ||
+                    !(Objects.equals(commandList.get(2), "WHITE") || Objects.equals(commandList.get(2), "BLACK"))) {
+                invalidCommand();
+                return;
+            }
+            if(listGames.isEmpty()) {
+                System.out.print(SET_TEXT_COLOR_RED + "ERROR: No games have been listed. Run the list command." + RESET_TEXT_COLOR + "\n");
+            }
+
             if (Objects.equals(status, "LOGGED_OUT")) {
                 notAuthorizedCheck();
                 return;
             }
 
-            printBoard(chessBoard, "WHITE");
+            try {
+                int gameID = Integer.parseInt(commandList.get(1));
+
+                if (gameID > listGames.size()) {
+                    System.out.print(SET_TEXT_COLOR_RED + "ERROR: Game ID does not exist." + RESET_TEXT_COLOR + "\n");
+                    return;
+                }
+
+                printBoard(chessBoard, "WHITE");
+            } catch (Exception e) {
+                invalidCommand();
+            }
         } else if (Objects.equals(command, "logout")) {
             if (!Objects.equals(commandList.size(), 1)) {
                 invalidCommand();
@@ -315,34 +363,6 @@ public class ClientMain {
             clearDatabase();
         } else {
             invalidCommand();
-        }
-    }
-
-    private static void help() {
-        if (Objects.equals(status, "LOGGED_IN")) {
-            System.out.print(SET_TEXT_COLOR_BLUE + "create <NAME>" + RESET_TEXT_COLOR);
-            System.out.print(" - a game\n");
-            System.out.print(SET_TEXT_COLOR_BLUE + "list" + RESET_TEXT_COLOR);
-            System.out.print(" - games\n");
-            System.out.print(SET_TEXT_COLOR_BLUE + "join <ID> [WHITE|BLACK]" + RESET_TEXT_COLOR);
-            System.out.print(" - a game\n");
-            System.out.print(SET_TEXT_COLOR_BLUE + "observe <ID>" + RESET_TEXT_COLOR);
-            System.out.print(" - a game\n");
-            System.out.print(SET_TEXT_COLOR_BLUE + "logout" + RESET_TEXT_COLOR);
-            System.out.print(" - when you are done\n");
-            System.out.print(SET_TEXT_COLOR_BLUE + "quit" + RESET_TEXT_COLOR);
-            System.out.print(" - playing chess\n");
-            System.out.print(SET_TEXT_COLOR_BLUE + "help" + RESET_TEXT_COLOR);
-            System.out.print(" - with possible commands\n");
-        } else {
-            System.out.print(SET_TEXT_COLOR_BLUE + "register <USERNAME> <PASSWORD> <EMAIL>" + RESET_TEXT_COLOR);
-            System.out.print(" - to create an account\n");
-            System.out.print(SET_TEXT_COLOR_BLUE + "login <USERNAME> <PASSWORD>" + RESET_TEXT_COLOR);
-            System.out.print(" - to play chess\n");
-            System.out.print(SET_TEXT_COLOR_BLUE + "quit" + RESET_TEXT_COLOR);
-            System.out.print(" - playing chess\n");
-            System.out.print(SET_TEXT_COLOR_BLUE + "help" + RESET_TEXT_COLOR);
-            System.out.print(" - with possible commands\n");
         }
     }
 
