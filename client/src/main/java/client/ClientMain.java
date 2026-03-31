@@ -12,14 +12,45 @@ import static ui.EscapeSequences.*;
 
 public class ClientMain {
     private static String status = "LOGGED_OUT";
+    private static String gameStatus = "OUT_OF_GAME";
     private static boolean quit = false;
-    private static ChessBoard chessBoard = new ChessBoard();
+    private static ChessGame chessGame = new ChessGame();
+    private static ChessBoard chessBoard = chessGame.getBoard();
     private static ServerFacade facade;
     private static AuthData session;
     private static Collection<Map<String, String>> listGames;
+    private static String color = "BLANK";
 
     private static void help() {
         if (Objects.equals(status, "LOGGED_IN")) {
+            if (Objects.equals(gameStatus,"PLAYING")) {
+                System.out.print(SET_TEXT_COLOR_BLUE + "redraw" + RESET_TEXT_COLOR);
+                System.out.print(" - chess board\n");
+                System.out.print(SET_TEXT_COLOR_BLUE + "move <POSITION> <POSITION> (OPTIONAL PROMOTION TYPE - QUEEN|ROOK|KNIGHT|BISHOP)" + RESET_TEXT_COLOR);
+                System.out.print(" - chess pieces\n");
+                System.out.print(SET_TEXT_COLOR_MAGENTA);
+                System.out.print("EXAMPLES:\nmove a8 a6 - move a standard piece from a8 to a6\nmove c7 c8 QUEEN - move a pawn from c7 to c8 and promote it to QUEEN\n");
+                System.out.print(RESET_TEXT_COLOR);
+                System.out.print(SET_TEXT_COLOR_BLUE + "resign" + RESET_TEXT_COLOR);
+                System.out.print(" - chess match\n");
+                System.out.print(SET_TEXT_COLOR_BLUE + "highlight <POSITION>" + RESET_TEXT_COLOR);
+                System.out.print(" - legal chess moves\n");
+                System.out.print(SET_TEXT_COLOR_MAGENTA);
+                System.out.print("EXAMPLE:\nhighlight e4 - displays all legal moves for the piece at e4\n");
+                System.out.print(RESET_TEXT_COLOR);
+                System.out.print(SET_TEXT_COLOR_BLUE + "help" + RESET_TEXT_COLOR);
+                System.out.print(" - with possible commands\n");
+                return;
+            } else if (Objects.equals(gameStatus, "OBSERVING")) {
+                System.out.print(SET_TEXT_COLOR_BLUE + "redraw" + RESET_TEXT_COLOR);
+                System.out.print(" - chess board\n");
+                System.out.print(SET_TEXT_COLOR_BLUE + "leave" + RESET_TEXT_COLOR);
+                System.out.print(" - current observation\n");
+                System.out.print(SET_TEXT_COLOR_BLUE + "help" + RESET_TEXT_COLOR);
+                System.out.print(" - with possible commands\n");
+                return;
+            }
+
             System.out.print(SET_TEXT_COLOR_BLUE + "create <NAME>" + RESET_TEXT_COLOR);
             System.out.print(" - a game\n");
             System.out.print(SET_TEXT_COLOR_BLUE + "list" + RESET_TEXT_COLOR);
@@ -74,7 +105,6 @@ public class ClientMain {
             Collections.reverse(cols);
             Collections.reverse(rows);
             Collections.reverse(reverseRows);
-
         }
 
         printRowHeader(cols);
@@ -158,7 +188,7 @@ public class ClientMain {
     }
 
     private void observe(ArrayList<String> commandList) {
-        if (!Objects.equals(commandList.size(), 2)) {
+        if (!Objects.equals(commandList.size(), 2) || !Objects.equals(gameStatus, "OUT_OF_GAME")) {
             invalidCommand();
             return;
         }
@@ -180,15 +210,20 @@ public class ClientMain {
                 return;
             }
 
-            printBoard(chessBoard, "WHITE");
+            gameStatus = "OBSERVING";
+            color = "WHITE";
+            printBoard(chessBoard, color);
         } catch (Exception e) {
             invalidCommand();
         }
     }
 
+
+
     private void join(ArrayList<String> commandList) {
-        if (!Objects.equals(commandList.size(), 3) ||
-                !(Objects.equals(commandList.get(2), "WHITE") || Objects.equals(commandList.get(2), "BLACK"))) {
+        if (!Objects.equals(commandList.size(), 3)
+                || !(Objects.equals(commandList.get(2), "WHITE") || Objects.equals(commandList.get(2), "BLACK"))
+                || !Objects.equals(gameStatus, "OUT_OF_GAME")) {
             invalidCommand();
             return;
         }
@@ -202,12 +237,16 @@ public class ClientMain {
             if (!Objects.equals(response.code(), 200)) {
                 handleErrors(response.code());
             } else {
-                printBoard(chessBoard, commandList.get(2));
+                gameStatus = "PLAYING";
+                color = commandList.get(2);
+                printBoard(chessBoard, color);
             }
         } catch (Exception e) {
             invalidCommand();
         }
     }
+
+
 
     private void deleteSession() {
         var serializer = new Gson();
@@ -226,7 +265,7 @@ public class ClientMain {
     }
 
     private void logout(ArrayList<String> commandList) {
-        if (!Objects.equals(commandList.size(), 1)) {
+        if (!Objects.equals(commandList.size(), 1) || !Objects.equals(gameStatus, "OUT_OF_GAME")) {
             invalidCommand();
             return;
         }
@@ -241,7 +280,7 @@ public class ClientMain {
     private void list(ArrayList<String> commandList) {
         var serializer = new Gson();
 
-        if (!Objects.equals(commandList.size(), 1)) {
+        if (!Objects.equals(commandList.size(), 1) || !Objects.equals(gameStatus, "OUT_OF_GAME")) {
             invalidCommand();
             return;
         }
@@ -291,7 +330,7 @@ public class ClientMain {
     private void create(ArrayList<String> commandList) {
         var serializer = new Gson();
 
-        if (!Objects.equals(commandList.size(), 2)) {
+        if (!Objects.equals(commandList.size(), 2) || !Objects.equals(gameStatus, "OUT_OF_GAME")) {
             invalidCommand();
             return;
         }
@@ -316,7 +355,7 @@ public class ClientMain {
     private void quit(ArrayList<String> commandList) {
         var serializer = new Gson();
 
-        if (!Objects.equals(commandList.size(), 1)) {
+        if (!Objects.equals(commandList.size(), 1) || !Objects.equals(gameStatus, "OUT_OF_GAME")) {
             invalidCommand();
             return;
         }
@@ -330,7 +369,7 @@ public class ClientMain {
         var serializer = new Gson();
 
         if (!Objects.equals(commandList.size(), 3) ||
-                Objects.equals(status, "LOGGED_IN")) {
+                Objects.equals(status, "LOGGED_IN") || !Objects.equals(gameStatus, "OUT_OF_GAME")) {
             invalidCommand();
             return;
         }
@@ -352,7 +391,7 @@ public class ClientMain {
         var serializer = new Gson();
 
         if (!Objects.equals(commandList.size(), 4) ||
-                Objects.equals(status, "LOGGED_IN")) {
+                Objects.equals(status, "LOGGED_IN") || !Objects.equals(gameStatus, "OUT_OF_GAME")) {
             invalidCommand();
             return;
         }
@@ -368,6 +407,134 @@ public class ClientMain {
         } catch (Exception ex) {
             System.out.print(SET_TEXT_COLOR_RED + "ERROR: Server Error." + RESET_TEXT_COLOR + "\n");
         }
+    }
+
+    private ChessPosition validatePosition(String position) {
+        int col = 0;
+        int row = 0;
+
+        if (position.length() != 2) {
+            return null;
+        }
+
+        char letter = position.toLowerCase().charAt(0);
+
+        if (Objects.equals(letter, 'a')) {
+            col = 1;
+        } else if (Objects.equals(letter, 'b')) {
+            col = 2;
+        }  else if (Objects.equals(letter, 'c')) {
+            col = 3;
+        }  else if (Objects.equals(letter, 'd')) {
+            col = 4;
+        }  else if (Objects.equals(letter, 'e')) {
+            col = 5;
+        }  else if (Objects.equals(letter, 'f')) {
+            col = 6;
+        }  else if (Objects.equals(letter, 'g')) {
+            col = 7;
+        }  else if (Objects.equals(letter, 'h')) {
+            col = 8;
+        } else {
+            return null;
+        }
+
+        if (Character.isDigit(position.charAt(1))) {
+            row = Character.getNumericValue(position.charAt(1));
+        } else {
+            return null;
+        }
+
+        return new ChessPosition(row, col);
+    }
+
+    private void move(ArrayList<String> commandList) {
+        if (commandList.size() < 3 || commandList.size() > 4 ||
+                !Objects.equals(status, "LOGGED_IN") || !Objects.equals(gameStatus, "PLAYING")) {
+            invalidCommand();
+            return;
+        }
+
+        ChessPosition startPosition = validatePosition(commandList.get(1));
+        ChessPosition endPosition = validatePosition(commandList.get(2));
+
+        if (startPosition == null || endPosition == null) {
+            if (startPosition == null) {
+                System.out.print(SET_TEXT_COLOR_RED + "ERROR: Invalid move start position." + RESET_TEXT_COLOR + "\n");
+            }
+            if (endPosition == null) {
+                System.out.print(SET_TEXT_COLOR_RED + "ERROR: Invalid move end position." + RESET_TEXT_COLOR + "\n");
+            }
+
+            return;
+        }
+
+        ChessPiece.PieceType promotionPiece = null;
+
+        if(commandList.size() == 4) {
+            String promotion = commandList.get(3).toUpperCase();
+
+            if (Objects.equals(promotion, "QUEEN")) {
+                promotionPiece = ChessPiece.PieceType.QUEEN;
+            } else if (Objects.equals(promotion, "ROOK")) {
+                promotionPiece = ChessPiece.PieceType.ROOK;
+            }  else if (Objects.equals(promotion, "KNIGHT")) {
+                promotionPiece = ChessPiece.PieceType.KNIGHT;
+            }  else if (Objects.equals(promotion, "BISHOP")) {
+                promotionPiece = ChessPiece.PieceType.BISHOP;
+            } else {
+                System.out.print(SET_TEXT_COLOR_RED + "ERROR: Invalid promotion type." + RESET_TEXT_COLOR + "\n");
+                return;
+            }
+        }
+
+        ChessMove move = new ChessMove(startPosition, endPosition, promotionPiece);
+        try {
+            chessGame.makeMove(move);
+            chessBoard = chessGame.getBoard();
+        } catch (InvalidMoveException e) {
+            System.out.print(SET_TEXT_COLOR_RED + "ERROR: Invalid chess move." + RESET_TEXT_COLOR + "\n");
+            System.out.print(SET_TEXT_COLOR_BLUE + "HINT: Run the 'highlight position' command for valid moves." + RESET_TEXT_COLOR + "\n");
+            System.out.print(SET_TEXT_COLOR_BLUE + "EXAMPLE: highlight a1 - gives a list of valid moves for the piece on a1." + RESET_TEXT_COLOR + "\n");
+
+            return;
+        }
+
+        System.out.print(SET_TEXT_COLOR_GREEN + "Move completed successfully." + RESET_TEXT_COLOR + "\n");
+
+        printBoard(chessBoard, color);
+    }
+
+    private void redraw(ArrayList<String> commandList) {
+        if (commandList.size() != 1 ||
+                !Objects.equals(status, "LOGGED_IN") || Objects.equals(gameStatus, "OUT_OF_GAME")) {
+            invalidCommand();
+            return;
+        }
+
+        printBoard(chessBoard, color);
+    }
+
+    private void leave(ArrayList<String> commandList) {
+        if (commandList.size() != 1 ||
+                !Objects.equals(status, "LOGGED_IN") || !Objects.equals(gameStatus, "OBSERVING")) {
+            invalidCommand();
+            return;
+        }
+
+        gameStatus = "OUT_OF_GAME";
+        System.out.print(SET_TEXT_COLOR_GREEN + "You have left successfully." + RESET_TEXT_COLOR + "\n");
+    }
+
+    private void resign(ArrayList<String> commandList) {
+        if (commandList.size() != 1 ||
+                !Objects.equals(status, "LOGGED_IN") || !Objects.equals(gameStatus, "PLAYING")) {
+            invalidCommand();
+            return;
+        }
+
+        gameStatus = "OUT_OF_GAME";
+        System.out.print(SET_TEXT_COLOR_GREEN + "You have resigned successfully." + RESET_TEXT_COLOR + "\n");
     }
 
     private void parseCommand(String line) {
@@ -403,6 +570,16 @@ public class ClientMain {
             logout(commandList);
         } else if (Objects.equals(command, "clear")) {
             clearDatabase();
+        } else if (Objects.equals(command, "redraw")) {
+            redraw(commandList);
+        } else if (Objects.equals(command, "leave")) {
+            leave(commandList);
+        } else if (Objects.equals(command, "move")) {
+            move(commandList);
+        } else if (Objects.equals(command, "resign")) {
+            resign(commandList);
+        } else if (Objects.equals(command, "highlight")) {
+
         } else {
             invalidCommand();
         }
@@ -414,7 +591,11 @@ public class ClientMain {
         System.out.println("♕ Welcome to 240 chess. Type Help to get started. ♕");
         System.out.print("\n");
         while (!quit) {
-            System.out.print("[" + status + "] >>> ");
+            if (Objects.equals(gameStatus, "OUT_OF_GAME")) {
+                System.out.print("[" + status + "] >>> ");
+            } else {
+                System.out.print("[" + gameStatus + "] >>> ");
+            }
             Scanner scanner = new Scanner(System.in);
             String line = scanner.nextLine();
             parseCommand(line);
