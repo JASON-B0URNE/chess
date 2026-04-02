@@ -50,15 +50,29 @@ public class GameDOA implements InterfaceDOA<GameData> {
     @Override
     public GameData get(String str) throws SQLException {
 
-        ArrayList<ArrayList<String>> result = executeQuery("SELECT gameID, whiteUsername, blackUsername, " +
-                "gameName, game FROM games ORDER BY gameID DESC LIMIT 1;");
+        if (str == null) {
+            ArrayList<ArrayList<String>> result = executeQuery("SELECT gameID, whiteUsername, blackUsername, " +
+                    "gameName, game FROM games ORDER BY gameID DESC LIMIT 1;");
 
-        if(result.isEmpty()) {
-            return null;
+            if (result.isEmpty()) {
+                return null;
+            }
+
+            ArrayList<String> row = result.get(0);
+
+            return parseRow(row);
+        } else {
+            ArrayList<ArrayList<String>> result = executeQuery("SELECT gameID, whiteUsername, blackUsername, " +
+                    "gameName, game FROM games WHERE gameID='" + str + "';");
+
+            if (result.isEmpty()) {
+                return null;
+            }
+
+            ArrayList<String> row = result.get(0);
+
+            return parseRow(row);
         }
-        ArrayList<String> row = result.get(0);
-
-        return parseRow(row);
     }
 
     @Override

@@ -1,15 +1,16 @@
 package services;
 
+import chess.ChessGame;
 import com.google.gson.Gson;
 import dataaccess.AuthDOA;
 import dataaccess.GameDOA;
 import dataaccess.InterfaceDOA;
 import model.AuthData;
 import model.GameData;
-import model.UserData;
 import requests.CreateGame;
 import requests.JoinGame;
 import requests.Response;
+import websocket.commands.UserGameCommand;
 
 import java.sql.SQLException;
 import java.util.Collection;
@@ -138,15 +139,35 @@ public class GameService {
             return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
         }
 
+        ChessGame chessGame = new ChessGame();
+
         int gameID = 1;
         if (oldGame != null) {
             gameID = oldGame.gameID() + 1;
         }
         try {
-            gameDOA.create(new GameData(gameID, null, null, newGame.gameName(), null));
+            gameDOA.create(new GameData(gameID, null, null, newGame.gameName(), chessGame));
         } catch (SQLException ex) {
             return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
         }
         return new Response(200, serializer.toJson(Map.of("gameID", gameID)));
+    }
+
+    public ChessGame getGame(UserGameCommand command) throws SQLException {
+        AuthData session;
+
+        try {
+            session = authDOA.get(command.getAuthToken());
+        } catch (SQLException ex) {
+            return null;
+        }
+
+        if (session == null) {
+            return null;
+        }
+
+        GameData gameData = gameDOA.get(command.getGameID().toString());
+
+        return gameData.game();
     }
 }

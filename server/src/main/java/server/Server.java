@@ -1,5 +1,6 @@
 package server;
 
+import chess.ChessGame;
 import com.google.gson.Gson;
 import io.javalin.*;
 import model.GameData;
@@ -10,8 +11,12 @@ import requests.Response;
 import services.AuthService;
 import services.GameService;
 import services.UserService;
+import websocket.commands.UserGameCommand;
+import websocket.messages.LoadGameMessage;
+import websocket.messages.ServerMessage;
 
 import java.sql.SQLException;
+import java.util.Objects;
 
 import static dataaccess.DatabaseManager.createDatabase;
 import static dataaccess.DatabaseManager.createTables;
@@ -76,8 +81,24 @@ public class Server {
 
                 Response response = gameService.joinGame(new JoinGame(authToken, request.playerColor(), request.gameID()));
                 ctx.status(response.code()).result(response.json());
-            })
-        ;
+            }
+        );
+
+        javalin.ws("/ws", ws -> {
+            ws.onMessage(ctx -> {
+                UserGameCommand message = serializer.fromJson(ctx.message(), UserGameCommand.class);
+
+                ChessGame game = gameService.getGame(message);
+
+                // If game null then notify error
+
+                if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.CONNECT)) {
+                    LoadGameMessage loadMessage = new LoadGameMessage(game);
+
+                    ctx.send(serializer.toJson(loadMessage));
+                }
+            });
+        });
     }
 
     public int run(int desiredPort) {
