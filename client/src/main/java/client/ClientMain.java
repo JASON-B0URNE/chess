@@ -96,7 +96,7 @@ public class ClientMain {
         System.out.print("\n");
     }
 
-    private static void printBoard(ChessBoard board, String perspective) {
+    private static void printBoard(ChessBoard board, String perspective, Collection<ChessPosition> tiles) {
         List<Character> cols = Arrays.asList('a','b','c','d','e','f','g','h');
         List<Integer> rows = Arrays.asList(7,6,5,4,3,2,1,0);
         List<Integer> reverseRows = Arrays.asList(0,1,2,3,4,5,6,7);
@@ -126,6 +126,16 @@ public class ClientMain {
                     }
                 }
 
+                if (tiles != null) {
+                    if (tiles.contains(new ChessPosition(row + 1, col + 1))) {
+                        if (Objects.equals(bgColor, SET_BG_COLOR_LIGHT_GREY)) {
+                            bgColor = SET_BG_COLOR_GREEN;
+                        } else if (Objects.equals(bgColor, SET_BG_COLOR_DARK_GREY)) {
+                            bgColor = SET_BG_COLOR_DARK_GREEN;
+                        }
+                    }
+                }
+
                 ChessPiece piece = board.getPiece(new ChessPosition(row + 1, col + 1));
                 if (piece == null) {
                     printSquare(bgColor, EMPTY);
@@ -139,7 +149,7 @@ public class ClientMain {
                     }
                 }
             }
-            printSquare(null, String.valueOf(row));
+            printSquare(null, String.valueOf(row + 1));
             System.out.print("\n");
         }
         printRowHeader(cols);
@@ -212,7 +222,7 @@ public class ClientMain {
 
             gameStatus = "OBSERVING";
             color = "WHITE";
-            printBoard(chessBoard, color);
+            printBoard(chessBoard, color, null);
         } catch (Exception e) {
             invalidCommand();
         }
@@ -239,7 +249,7 @@ public class ClientMain {
             } else {
                 gameStatus = "PLAYING";
                 color = commandList.get(2);
-                printBoard(chessBoard, color);
+                printBoard(chessBoard, color, null);
             }
         } catch (Exception e) {
             invalidCommand();
@@ -458,6 +468,11 @@ public class ClientMain {
         ChessPosition startPosition = validatePosition(commandList.get(1));
         ChessPosition endPosition = validatePosition(commandList.get(2));
 
+        if (!Objects.equals(chessBoard.getPiece(startPosition).getTeamColor(), color)) {
+            System.out.print(SET_TEXT_COLOR_RED + "ERROR: Cannot move pieces of the opposite color." + RESET_TEXT_COLOR + "\n");
+            return;
+        }
+
         if (startPosition == null || endPosition == null) {
             if (startPosition == null) {
                 System.out.print(SET_TEXT_COLOR_RED + "ERROR: Invalid move start position." + RESET_TEXT_COLOR + "\n");
@@ -502,7 +517,7 @@ public class ClientMain {
 
         System.out.print(SET_TEXT_COLOR_GREEN + "Move completed successfully." + RESET_TEXT_COLOR + "\n");
 
-        printBoard(chessBoard, color);
+        printBoard(chessBoard, color, null);
     }
 
     private void redraw(ArrayList<String> commandList) {
@@ -512,7 +527,7 @@ public class ClientMain {
             return;
         }
 
-        printBoard(chessBoard, color);
+        printBoard(chessBoard, color, null);
     }
 
     private void leave(ArrayList<String> commandList) {
@@ -535,6 +550,27 @@ public class ClientMain {
 
         gameStatus = "OUT_OF_GAME";
         System.out.print(SET_TEXT_COLOR_GREEN + "You have resigned successfully." + RESET_TEXT_COLOR + "\n");
+    }
+
+    private void highlight(ArrayList<String> commandList) {
+        if (commandList.size() != 2 ||
+                !Objects.equals(status, "LOGGED_IN") || !Objects.equals(gameStatus, "PLAYING")) {
+            invalidCommand();
+            return;
+        }
+        ChessPosition startPosition = validatePosition(commandList.get(1));
+
+        if (!Objects.equals(chessBoard.getPiece(startPosition).getTeamColor(), color)) {
+            System.out.print(SET_TEXT_COLOR_RED + "ERROR: Cannot highlight pieces of the opposite color." + RESET_TEXT_COLOR + "\n");
+            return;
+        }
+
+        Collection<ChessMove> validMoves = chessGame.validMoves(startPosition);
+
+        Collection<ChessPosition> validPositions = new ArrayList<ChessPosition>();
+        validMoves.forEach(x -> validPositions.add(x.getEndPosition()));
+
+        printBoard(chessBoard, color, validPositions);
     }
 
     private void parseCommand(String line) {
@@ -579,7 +615,7 @@ public class ClientMain {
         } else if (Objects.equals(command, "resign")) {
             resign(commandList);
         } else if (Objects.equals(command, "highlight")) {
-
+            highlight(commandList);
         } else {
             invalidCommand();
         }
