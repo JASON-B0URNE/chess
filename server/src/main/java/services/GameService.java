@@ -153,7 +153,7 @@ public class GameService {
         return new Response(200, serializer.toJson(Map.of("gameID", gameID)));
     }
 
-    public ChessGame getGame(UserGameCommand command) throws SQLException {
+    public GameData getGame(UserGameCommand command) throws SQLException {
         AuthData session;
 
         try {
@@ -168,6 +168,6 @@ public class GameService {
 
         GameData gameData = gameDOA.get(command.getGameID().toString());
 
-        return gameData.game();
+        return gameData;
     }
 }

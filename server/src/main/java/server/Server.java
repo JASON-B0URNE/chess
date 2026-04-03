@@ -3,6 +3,8 @@ package server;
 import chess.ChessGame;
 import com.google.gson.Gson;
 import io.javalin.*;
+import io.javalin.websocket.WsContext;
+import model.AuthData;
 import model.GameData;
 import model.UserData;
 import requests.CreateGame;
@@ -13,10 +15,14 @@ import services.GameService;
 import services.UserService;
 import websocket.commands.UserGameCommand;
 import websocket.messages.LoadGameMessage;
+import websocket.messages.NotificationMessage;
 import websocket.messages.ServerMessage;
 
 import java.sql.SQLException;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static dataaccess.DatabaseManager.createDatabase;
 import static dataaccess.DatabaseManager.createTables;
@@ -30,6 +36,8 @@ public class Server {
         AuthService authService = new AuthService();
         UserService userService = new UserService();
         GameService gameService = new GameService();
+
+        Map<Integer, Set<WsContext>> gameSessions = new ConcurrentHashMap<>();
 
         try {
             createDatabase();
@@ -88,14 +96,46 @@ public class Server {
             ws.onMessage(ctx -> {
                 UserGameCommand message = serializer.fromJson(ctx.message(), UserGameCommand.class);
 
-                ChessGame game = gameService.getGame(message);
+                AuthData user = authService.getUser(message);
+                GameData gameData = gameService.getGame(message);
+                Integer gameID = gameData.gameID();
+
+                gameSessions.putIfAbsent(gameID, ConcurrentHashMap.newKeySet());
+                gameSessions.get(gameID).add(ctx);
 
                 // If game null then notify error
 
                 if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.CONNECT)) {
-                    LoadGameMessage loadMessage = new LoadGameMessage(game);
+                    LoadGameMessage loadMessage = new LoadGameMessage(gameData.game());
+                    System.out.println("Server Message: " + ctx.message());
 
-                    ctx.send(serializer.toJson(loadMessage));
+                    NotificationMessage notificationMessage;
+
+                    if (Objects.equals(gameData.whiteUsername(), user.username())) {
+                        notificationMessage = new NotificationMessage("Player " + user.username() + " joined as WHITE\n");
+                    } else if (Objects.equals(gameData.blackUsername(), user.username())) {
+                        notificationMessage = new NotificationMessage("Player " + user.username() + " joined as BLACK\n");
+                    } else {
+                        notificationMessage = new NotificationMessage("Player " + user.username() + " joined as an OBSERVER\n");
+                    }
+
+                    for (WsContext client : gameSessions.get(gameID)) {
+                        try {
+                            if (!client.session.isOpen()) {
+                                gameSessions.get(gameID).remove(client);
+                            }
+
+                            if (client != ctx) {
+                                client.send(serializer.toJson(notificationMessage));
+                            } else {
+                                client.send(serializer.toJson(loadMessage));
+                            }
+                        } catch (Exception e) {
+                            gameSessions.get(gameID).remove(client);
+                        }
+                    }
+                } else if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.MAKE_MOVE)) {
+
                 }
             });
         });

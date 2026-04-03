@@ -11,6 +11,7 @@ import model.UserData;
 import org.eclipse.jetty.server.Authentication;
 import org.mindrot.jbcrypt.BCrypt;
 import requests.Response;
+import websocket.commands.UserGameCommand;
 
 import java.sql.SQLException;
 import java.util.Map;
@@ -90,5 +91,17 @@ public class AuthService {
         } catch (SQLException ex) {
             return new Response(500, serializer.toJson(Map.of("message", "Error: database error")));
         }
+    }
+
+    public AuthData getUser(UserGameCommand command) {
+        AuthData session;
+
+        try {
+            session = authDOA.get(command.getAuthToken());
+        } catch (SQLException ex) {
+            return null;
+        }
+
+        return session;
     }
 }
