@@ -1,6 +1,9 @@
 package server;
 
+import chess.ChessBoard;
 import chess.ChessGame;
+import chess.ChessMove;
+import chess.ChessPosition;
 import com.google.gson.Gson;
 import io.javalin.*;
 import io.javalin.websocket.WsContext;
@@ -13,6 +16,7 @@ import requests.Response;
 import services.AuthService;
 import services.GameService;
 import services.UserService;
+import websocket.commands.MakeMoveCommand;
 import websocket.commands.UserGameCommand;
 import websocket.messages.ErrorMessage;
 import websocket.messages.LoadGameMessage;
@@ -102,8 +106,8 @@ public class Server {
 
                 if (user == null || gameData == null) {
                     ErrorMessage errorMessage = new ErrorMessage("Error: Invalid user command.");
-
                     ctx.send(serializer.toJson(errorMessage));
+
                     return;
                 }
 
@@ -112,10 +116,12 @@ public class Server {
                 gameSessions.putIfAbsent(gameID, ConcurrentHashMap.newKeySet());
                 gameSessions.get(gameID).add(ctx);
 
-                if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.CONNECT)) {
-                    LoadGameMessage loadMessage = new LoadGameMessage(gameData.game());
+                ChessGame game = gameData.game();
 
-                    NotificationMessage notificationMessage;
+                if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.CONNECT)) {
+                    LoadGameMessage loadMessage = new LoadGameMessage(game);
+
+                    NotificationMessage notificationMessage = null;
 
                     if (Objects.equals(gameData.whiteUsername(), user.username())) {
                         notificationMessage = new NotificationMessage("Player " + user.username() + " joined as WHITE\n");
@@ -131,7 +137,7 @@ public class Server {
                                 gameSessions.get(gameID).remove(client);
                             }
 
-                            if (client != ctx) {
+                            if (!Objects.equals(client, ctx)) {
                                 client.send(serializer.toJson(notificationMessage));
                             } else {
                                 client.send(serializer.toJson(loadMessage));
@@ -141,17 +147,58 @@ public class Server {
                         }
                     }
                 } else if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.MAKE_MOVE)) {
-                    LoadGameMessage loadMessage = new LoadGameMessage(gameData.game());
-                    System.out.println("Server Message: " + ctx.message());
+                    LoadGameMessage loadMessage = new LoadGameMessage(game);
 
-                    NotificationMessage notificationMessage;
+                    MakeMoveCommand makeMove = serializer.fromJson(ctx.message(), MakeMoveCommand.class);
+                    ChessMove move = makeMove.getMove();
+                    ChessBoard board = game.getBoard();
+
+                    ChessGame.TeamColor currentColor = game.getTeamTurn();
+
+                    try {
+                        game.makeMove(move);
+                    } catch (Exception e) {
+                        ErrorMessage errorMessage = new ErrorMessage("Error: Invalid move.");
+                        ctx.send(serializer.toJson(errorMessage));
+
+                        return;
+                    }
+
+                    NotificationMessage notificationMessage = null;
+                    NotificationMessage specialMessage = null;
+                    ChessGame.TeamColor oppositeColor;
+                    String oppositeUsername;
+
+                    if (currentColor == ChessGame.TeamColor.BLACK) {
+                        oppositeColor = ChessGame.TeamColor.WHITE;
+                        oppositeUsername = gameData.whiteUsername();
+                    } else {
+                        oppositeColor = ChessGame.TeamColor.BLACK;
+                        oppositeUsername = gameData.whiteUsername();
+                    }
+
+                    boolean check = game.isInCheck(oppositeColor);
+                    if (check) {
+                        specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is in check.");
+                        ctx.send(serializer.toJson(notificationMessage));
+                    }
+
+                    boolean checkmate = game.isInCheckmate(oppositeColor);
+                    if (checkmate) {
+                        specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - has been checkmated.\n");
+                    }
+                    boolean stalemate = game.isInStalemate(oppositeColor);
 
                     if (Objects.equals(gameData.whiteUsername(), user.username())) {
-                        notificationMessage = new NotificationMessage("Player " + user.username() + " joined as WHITE\n");
+                        notificationMessage = new NotificationMessage("WHITE Player " + user.username() + " - moved " + board.getPiece(move.getStartPosition()).toString()
+                                + " " + parsePosition(move.getStartPosition()) + " to " + parsePosition(move.getEndPosition()) +"\n");
                     } else if (Objects.equals(gameData.blackUsername(), user.username())) {
-                        notificationMessage = new NotificationMessage("Player " + user.username() + " joined as BLACK\n");
-                    } else {
-                        notificationMessage = new NotificationMessage("Player " + user.username() + " joined as an OBSERVER\n");
+                        notificationMessage = new NotificationMessage("BLACK Player " + user.username() + " - moved " + board.getPiece(move.getStartPosition()).toString()
+                                + " " + parsePosition(move.getStartPosition()) + " to " + parsePosition(move.getEndPosition()) +"\n");                    } else {
+                        ErrorMessage errorMessage = new ErrorMessage("Error: Invalid user command.");
+                        ctx.send(serializer.toJson(errorMessage));
+
+                        return;
                     }
 
                     for (WsContext client : gameSessions.get(gameID)) {
@@ -160,11 +207,17 @@ public class Server {
                                 gameSessions.get(gameID).remove(client);
                             }
 
-                            if (client != ctx) {
+                            if (specialMessage != null) {
+                                client.send(serializer.toJson(specialMessage));
+                            }
+
+                            if (!Objects.equals(client, ctx)) {
                                 client.send(serializer.toJson(notificationMessage));
+                                client.send(serializer.toJson(loadMessage));
                             } else {
                                 client.send(serializer.toJson(loadMessage));
                             }
+
                         } catch (Exception e) {
                             gameSessions.get(gameID).remove(client);
                         }
@@ -172,6 +225,35 @@ public class Server {
                 }
             });
         });
+    }
+
+    private String parsePosition(ChessPosition position) {
+        Integer row = position.getRow();
+        Integer col = position.getColumn();
+
+        String string = null;
+
+        if (row == 1) {
+            string += "a";
+        } else if (row == 2) {
+            string += "b";
+        } else if (row == 3) {
+            string += "c";
+        } else if (row == 4) {
+            string += "d";
+        } else if (row == 5) {
+            string += "e";
+        } else if (row == 6) {
+            string += "f";
+        } else if (row == 7) {
+            string += "g";
+        } else if (row == 8) {
+            string += "h";
+        }
+
+        string += col.toString();
+
+        return string;
     }
 
     public int run(int desiredPort) {
