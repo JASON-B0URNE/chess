@@ -268,11 +268,11 @@ public class ChessGame {
             return false;
         }
         ChessGame chessGame = (ChessGame) o;
-        return currentTeam == chessGame.currentTeam && Objects.equals(board, chessGame.board);
+        return currentTeam == chessGame.currentTeam && Objects.equals(getBoard(), chessGame.getBoard());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(currentTeam, board);
+        return Objects.hash(currentTeam, getBoard());
     }
 }

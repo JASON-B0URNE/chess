@@ -5,6 +5,7 @@ import chess.ChessGame;
 import chess.ChessMove;
 import chess.ChessPosition;
 import com.google.gson.Gson;
+import dataaccess.GameDOA;
 import io.javalin.*;
 import io.javalin.websocket.WsContext;
 import model.AuthData;
@@ -147,25 +148,16 @@ public class Server {
                         }
                     }
                 } else if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.MAKE_MOVE)) {
-                    LoadGameMessage loadMessage = new LoadGameMessage(game);
-
                     MakeMoveCommand makeMove = serializer.fromJson(ctx.message(), MakeMoveCommand.class);
                     ChessMove move = makeMove.getMove();
+                    ChessPosition startPosition = new ChessPosition(move.getStartPosition().getRow(), move.getStartPosition().getColumn());
+                    ChessPosition endPosition = new ChessPosition(move.getEndPosition().getRow(), move.getEndPosition().getColumn());
+
+                    move = new ChessMove(startPosition, endPosition, move.getPromotionPiece());
                     ChessBoard board = game.getBoard();
 
                     ChessGame.TeamColor currentColor = game.getTeamTurn();
 
-                    try {
-                        game.makeMove(move);
-                    } catch (Exception e) {
-                        ErrorMessage errorMessage = new ErrorMessage("Error: Invalid move.");
-                        ctx.send(serializer.toJson(errorMessage));
-
-                        return;
-                    }
-
-                    NotificationMessage notificationMessage = null;
-                    NotificationMessage specialMessage = null;
                     ChessGame.TeamColor oppositeColor;
                     String oppositeUsername;
 
@@ -177,16 +169,56 @@ public class Server {
                         oppositeUsername = gameData.whiteUsername();
                     }
 
-                    boolean check = game.isInCheck(oppositeColor);
-                    if (check) {
-                        specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is in check.");
-                        ctx.send(serializer.toJson(notificationMessage));
+                    try {
+                        game.makeMove(move);
+                    } catch (Exception e) {
+                        ErrorMessage errorMessage = new ErrorMessage("Error: Invalid move.");
+                        ctx.send(serializer.toJson(errorMessage));
+
+                        return;
                     }
+
+                    NotificationMessage notificationMessage = null;
+
+                    LoadGameMessage loadMessage = new LoadGameMessage(game);
+                    GameDOA gameDOA = new GameDOA();
+                    GameData updateData = new GameData(gameID, gameData.whiteUsername(), gameData.blackUsername(),
+                            gameData.gameName(), game);
+                    gameDOA.replace(updateData);
+
+                    NotificationMessage specialMessage = null;
 
                     boolean checkmate = game.isInCheckmate(oppositeColor);
                     if (checkmate) {
-                        specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - has been checkmated.\n");
+                        specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is checkmated.");
+
+                        for (WsContext client : gameSessions.get(gameID)) {
+                            try {
+                                if (!client.session.isOpen()) {
+                                    gameSessions.get(gameID).remove(client);
+                                }
+
+                                if (specialMessage != null) {
+                                    client.send(serializer.toJson(specialMessage));
+                                }
+
+                                client.send(serializer.toJson(specialMessage));
+                                client.send(serializer.toJson(loadMessage));
+
+                            } catch (Exception e) {
+                                gameSessions.get(gameID).remove(client);
+                            }
+                        }
+
+                        return;
                     }
+
+                    boolean check = game.isInCheck(oppositeColor);
+                    if (check) {
+                        specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is in check.");
+                        ctx.send(serializer.toJson(specialMessage));
+                    }
+
                     boolean stalemate = game.isInStalemate(oppositeColor);
 
                     if (Objects.equals(gameData.whiteUsername(), user.username())) {

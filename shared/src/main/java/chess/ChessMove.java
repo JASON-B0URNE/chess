@@ -17,19 +17,13 @@ public class ChessMove {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         ChessMove chessMove = (ChessMove) o;
-        return Objects.equals(chessStartPosition, chessMove.chessStartPosition) &&
-                Objects.equals(chessEndPosition, chessMove.chessEndPosition) &&
-                chessPromotionPiece == chessMove.chessPromotionPiece;
+        return Objects.equals(chessStartPosition, chessMove.chessStartPosition) && Objects.equals(chessEndPosition, chessMove.chessEndPosition) && chessPromotionPiece == chessMove.chessPromotionPiece;
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hashCode(chessStartPosition);
-        result = 31 * result + Objects.hashCode(chessEndPosition);
-        result = 31 * result + Objects.hashCode(chessPromotionPiece);
-        return result;
+        return Objects.hash(chessStartPosition, chessEndPosition, chessPromotionPiece);
     }
 
     private final ChessPiece.PieceType chessPromotionPiece;

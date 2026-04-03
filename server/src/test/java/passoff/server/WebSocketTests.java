@@ -168,9 +168,11 @@ public class WebSocketTests {
         makeMove(black, gameID, move, true, false, Set.of(white, observer), Set.of(), "second move");
         move = new ChessMove(new ChessPosition(2, 6), new ChessPosition(3, 6), null);
         makeMove(white, gameID, move, true, false, Set.of(black, observer), Set.of(), "third move");
+        System.out.println("Checkmate Move");
         move = new ChessMove(new ChessPosition(8, 4), new ChessPosition(4, 8), null);
         makeMove(black, gameID, move, true, true, Set.of(white, observer), Set.of(), "checkmate move");
         //checkmate--attempt another move
+        System.out.println("Breaking Move");
         move = new ChessMove(new ChessPosition(2, 5), new ChessPosition(4, 5), null);
         makeMove(white, gameID, move, false, false, Set.of(black, observer), Set.of(), "invalid move");
     }
