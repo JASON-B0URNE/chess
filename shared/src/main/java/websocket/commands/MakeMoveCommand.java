@@ -39,7 +39,8 @@ public class MakeMoveCommand {
             return false;
         }
         MakeMoveCommand that = (MakeMoveCommand) o;
-        return getCommandType() == that.getCommandType() && Objects.equals(getAuthToken(), that.getAuthToken()) && Objects.equals(getGameID(), that.getGameID()) && Objects.equals(move, that.move);
+        return getCommandType() == that.getCommandType() && Objects.equals(getAuthToken(), that.getAuthToken())
+                && Objects.equals(getGameID(), that.getGameID()) && Objects.equals(move, that.move);
     }
 
     @Override

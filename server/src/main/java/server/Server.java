@@ -228,11 +228,14 @@ public class Server {
                     }
 
                     if (Objects.equals(gameData.whiteUsername(), user.username())) {
-                        notificationMessage = new NotificationMessage("WHITE Player " + user.username() + " - moved " + board.getPiece(move.getStartPosition()).toString()
-                                + " " + parsePosition(move.getStartPosition()) + " to " + parsePosition(move.getEndPosition()) +".\n");
+                        notificationMessage = new NotificationMessage("WHITE Player " + user.username() + " - moved " +
+                                board.getPiece(move.getStartPosition()).toString() +
+                                " " + parsePosition(move.getStartPosition()) + " to " + parsePosition(move.getEndPosition()) +".\n");
                     } else if (Objects.equals(gameData.blackUsername(), user.username())) {
-                        notificationMessage = new NotificationMessage("BLACK Player " + user.username() + " - moved " + board.getPiece(move.getStartPosition()).toString()
-                                + " " + parsePosition(move.getStartPosition()) + " to " + parsePosition(move.getEndPosition()) +".\n");                    } else {
+                        notificationMessage = new NotificationMessage("BLACK Player " + user.username() + " - moved " +
+                                board.getPiece(move.getStartPosition()).toString() +
+                                " " + parsePosition(move.getStartPosition()) + " to " + parsePosition(move.getEndPosition()) +".\n");
+                    } else {
                         ErrorMessage errorMessage = new ErrorMessage("Error: Invalid user command.\n");
                         ctx.send(serializer.toJson(errorMessage));
 
