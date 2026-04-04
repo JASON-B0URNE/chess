@@ -162,108 +162,7 @@ public class Server {
                 }
             }
         } else if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.MAKE_MOVE)) {
-            MakeMoveCommand makeMove = serializer.fromJson(command, MakeMoveCommand.class);
-            ChessMove move = makeMove.getMove();
-            ChessPosition startPosition = new ChessPosition(move.getStartPosition().getRow(), move.getStartPosition().getColumn());
-            ChessPosition endPosition = new ChessPosition(move.getEndPosition().getRow(), move.getEndPosition().getColumn());
-
-            NotificationMessage notificationMessage;
-
-            move = new ChessMove(startPosition, endPosition, move.getPromotionPiece());
-            ChessBoard board = game.getBoard();
-
-            ChessGame.TeamColor currentColor = game.getTeamTurn();
-
-            ChessGame.TeamColor oppositeColor;
-            String oppositeUsername;
-
-            if (currentColor == ChessGame.TeamColor.BLACK) {
-                oppositeColor = ChessGame.TeamColor.WHITE;
-                oppositeUsername = gameData.whiteUsername();
-            } else {
-                oppositeColor = ChessGame.TeamColor.BLACK;
-                oppositeUsername = gameData.blackUsername();
-            }
-
-            if (Objects.equals(user.username(), oppositeUsername)) {
-                ErrorMessage errorMessage = new ErrorMessage("Error: Invalid move.\n");
-                ctx.send(serializer.toJson(errorMessage));
-
-                return;
-            }
-
-            try {
-                if (!Objects.equals(gameStatus.get(gameID), "NORMAL")) {
-                    ErrorMessage errorMessage = new ErrorMessage("Error: Game is not in session.\n");
-                    ctx.send(serializer.toJson(errorMessage));
-
-                    return;
-                }
-
-                game.makeMove(move);
-            } catch (Exception e) {
-                ErrorMessage errorMessage = new ErrorMessage("Error: Invalid move.\n");
-                ctx.send(serializer.toJson(errorMessage));
-
-                return;
-            }
-
-            LoadGameMessage loadMessage = new LoadGameMessage(game);
-            GameDOA gameDOA = new GameDOA();
-            GameData updateData = new GameData(gameID, gameData.whiteUsername(), gameData.blackUsername(),
-                    gameData.gameName(), game);
-            gameDOA.replace(updateData);
-
-            NotificationMessage specialMessage = null;
-
-            boolean check = game.isInCheck(oppositeColor);
-            if (check) {
-                specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is in check.\n");
-
-                boolean checkmate = game.isInCheckmate(oppositeColor);
-                if (checkmate) {
-                    specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is checkmated.\n");
-                }
-            }
-
-            boolean stalemate = game.isInStalemate(oppositeColor);
-            if (stalemate) {
-                specialMessage = new NotificationMessage("Game is in stalemate.\n");
-                gameStatus.put(gameID, "STALEMATE");
-            }
-
-            if (Objects.equals(gameData.whiteUsername(), user.username())) {
-                notificationMessage = new NotificationMessage("WHITE Player " + user.username() + " - moved " +
-                        board.getPiece(move.getStartPosition()).toString() +
-                        " " + parsePosition(move.getStartPosition()) + " to " + parsePosition(move.getEndPosition()) + ".\n");
-            } else if (Objects.equals(gameData.blackUsername(), user.username())) {
-                notificationMessage = new NotificationMessage("BLACK Player " + user.username() + " - moved " +
-                        board.getPiece(move.getStartPosition()).toString() +
-                        " " + parsePosition(move.getStartPosition()) + " to " + parsePosition(move.getEndPosition()) + ".\n");
-            } else {
-                ErrorMessage errorMessage = new ErrorMessage("Error: Invalid user command.\n");
-                ctx.send(serializer.toJson(errorMessage));
-
-                return;
-            }
-
-            for (WsContext client : gameSessions.get(gameID)) {
-                try {
-                    if (specialMessage != null) {
-                        client.send(serializer.toJson(specialMessage));
-                    }
-
-                    if (!Objects.equals(client, ctx)) {
-                        client.send(serializer.toJson(notificationMessage));
-                        client.send(serializer.toJson(loadMessage));
-                    } else {
-                        client.send(serializer.toJson(loadMessage));
-                    }
-
-                } catch (Exception e) {
-                    gameSessions.get(gameID).remove(client);
-                }
-            }
+            makeMove(command, game, gameData, user, ctx, gameID);
         } else if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.RESIGN)) {
             if (!Objects.equals(gameStatus.get(gameID), "NORMAL")) {
                 ErrorMessage errorMessage = new ErrorMessage("Error: Game is not in session.\n");
@@ -316,6 +215,114 @@ public class Server {
                 } catch (Exception e) {
                     gameSessions.get(gameID).remove(client);
                 }
+            }
+        }
+    }
+
+    private void makeMove(String command, ChessGame game, GameData gameData,
+            AuthData user, WsContext ctx, Integer gameID) throws SQLException {
+        var serializer = new Gson();
+
+        MakeMoveCommand makeMove = serializer.fromJson(command, MakeMoveCommand.class);
+        ChessMove move = makeMove.getMove();
+        ChessPosition startPosition = new ChessPosition(move.getStartPosition().getRow(), move.getStartPosition().getColumn());
+        ChessPosition endPosition = new ChessPosition(move.getEndPosition().getRow(), move.getEndPosition().getColumn());
+
+        NotificationMessage notificationMessage;
+
+        move = new ChessMove(startPosition, endPosition, move.getPromotionPiece());
+        ChessBoard board = game.getBoard();
+
+        ChessGame.TeamColor currentColor = game.getTeamTurn();
+
+        ChessGame.TeamColor oppositeColor;
+        String oppositeUsername;
+
+        if (currentColor == ChessGame.TeamColor.BLACK) {
+            oppositeColor = ChessGame.TeamColor.WHITE;
+            oppositeUsername = gameData.whiteUsername();
+        } else {
+            oppositeColor = ChessGame.TeamColor.BLACK;
+            oppositeUsername = gameData.blackUsername();
+        }
+
+        if (Objects.equals(user.username(), oppositeUsername)) {
+            ErrorMessage errorMessage = new ErrorMessage("Error: Invalid move.\n");
+            ctx.send(serializer.toJson(errorMessage));
+
+            return;
+        }
+
+        try {
+            if (!Objects.equals(gameStatus.get(gameID), "NORMAL")) {
+                ErrorMessage errorMessage = new ErrorMessage("Error: Game is not in session.\n");
+                ctx.send(serializer.toJson(errorMessage));
+
+                return;
+            }
+
+            game.makeMove(move);
+        } catch (Exception e) {
+            ErrorMessage errorMessage = new ErrorMessage("Error: Invalid move.\n");
+            ctx.send(serializer.toJson(errorMessage));
+
+            return;
+        }
+
+        LoadGameMessage loadMessage = new LoadGameMessage(game);
+        GameDOA gameDOA = new GameDOA();
+        GameData updateData = new GameData(gameID, gameData.whiteUsername(), gameData.blackUsername(),
+                gameData.gameName(), game);
+        gameDOA.replace(updateData);
+
+        NotificationMessage specialMessage = null;
+
+        boolean check = game.isInCheck(oppositeColor);
+        if (check) {
+            specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is in check.\n");
+
+            boolean checkmate = game.isInCheckmate(oppositeColor);
+            if (checkmate) {
+                specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is checkmated.\n");
+            }
+        }
+
+        boolean stalemate = game.isInStalemate(oppositeColor);
+        if (stalemate) {
+            specialMessage = new NotificationMessage("Game is in stalemate.\n");
+            gameStatus.put(gameID, "STALEMATE");
+        }
+
+        if (Objects.equals(gameData.whiteUsername(), user.username())) {
+            notificationMessage = new NotificationMessage("WHITE Player " + user.username() + " - moved " +
+                    board.getPiece(move.getStartPosition()).toString() +
+                    " " + parsePosition(move.getStartPosition()) + " to " + parsePosition(move.getEndPosition()) + ".\n");
+        } else if (Objects.equals(gameData.blackUsername(), user.username())) {
+            notificationMessage = new NotificationMessage("BLACK Player " + user.username() + " - moved " +
+                    board.getPiece(move.getStartPosition()).toString() +
+                    " " + parsePosition(move.getStartPosition()) + " to " + parsePosition(move.getEndPosition()) + ".\n");
+        } else {
+            ErrorMessage errorMessage = new ErrorMessage("Error: Invalid user command.\n");
+            ctx.send(serializer.toJson(errorMessage));
+
+            return;
+        }
+
+        for (WsContext client : gameSessions.get(gameID)) {
+            try {
+                if (specialMessage != null) {
+                    client.send(serializer.toJson(specialMessage));
+                }
+
+                if (!Objects.equals(client, ctx)) {
+                    client.send(serializer.toJson(notificationMessage));
+                    client.send(serializer.toJson(loadMessage));
+                } else {
+                    client.send(serializer.toJson(loadMessage));
+                }
+
+            } catch (Exception e) {
+                gameSessions.get(gameID).remove(client);
             }
         }
     }
