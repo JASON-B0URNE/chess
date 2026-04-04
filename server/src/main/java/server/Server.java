@@ -115,6 +115,17 @@ public class Server {
 
                 Integer gameID = gameData.gameID();
 
+                if (gameSessions.get(gameID) != null && !gameSessions.get(gameID).isEmpty()) {
+                    for (WsContext client : gameSessions.get(gameID)) {
+                        if (!client.session.isOpen()) {
+                            gameSessions.get(gameID).remove(client);
+                        }
+                    }
+                    if (gameSessions.get(gameID).isEmpty()) {
+                        gameStatus.remove(gameID);
+                    }
+                }
+
                 gameSessions.putIfAbsent(gameID, ConcurrentHashMap.newKeySet());
                 gameSessions.get(gameID).add(ctx);
                 gameStatus.putIfAbsent(gameID, "NORMAL");
@@ -136,10 +147,6 @@ public class Server {
 
                     for (WsContext client : gameSessions.get(gameID)) {
                         try {
-                            if (!client.session.isOpen()) {
-                                gameSessions.get(gameID).remove(client);
-                            }
-
                             if (!Objects.equals(client, ctx)) {
                                 client.send(serializer.toJson(notificationMessage));
                             } else {
@@ -182,8 +189,8 @@ public class Server {
 
                     try {
                         if (!Objects.equals(gameStatus.get(gameID), "NORMAL")) {
-                            notificationMessage = new NotificationMessage("The game has been resigned.");
-                            ctx.send(serializer.toJson(notificationMessage));
+                            ErrorMessage errorMessage = new ErrorMessage("Error: Game is not in session.\n");
+                            ctx.send(serializer.toJson(errorMessage));
 
                             return;
                         }
@@ -234,10 +241,6 @@ public class Server {
 
                     for (WsContext client : gameSessions.get(gameID)) {
                         try {
-                            if (!client.session.isOpen()) {
-                                gameSessions.get(gameID).remove(client);
-                            }
-
                             if (specialMessage != null) {
                                 client.send(serializer.toJson(specialMessage));
                             }
@@ -261,6 +264,14 @@ public class Server {
                         return;
                     }
 
+                    if (!Objects.equals(user.username(), gameData.blackUsername()) &&
+                            !Objects.equals(user.username(), gameData.whiteUsername())) {
+                        ErrorMessage errorMessage = new ErrorMessage("Error: Invalid command.\n");
+                        ctx.send(serializer.toJson(errorMessage));
+
+                        return;
+                    }
+
                     NotificationMessage notificationMessage = null;
                     notificationMessage = new NotificationMessage("Player " + user.username() + " has resigned.\n");
 
@@ -268,10 +279,18 @@ public class Server {
 
                     for (WsContext client : gameSessions.get(gameID)) {
                         try {
-                            if (!client.session.isOpen()) {
-                                gameSessions.get(gameID).remove(client);
-                            }
+                            client.send(serializer.toJson(notificationMessage));
 
+                        } catch (Exception e) {
+                            gameSessions.get(gameID).remove(client);
+                        }
+                    }
+                } else if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.LEAVE)) {
+                    NotificationMessage notificationMessage = new NotificationMessage("Player " + user.username() + " has left the game.\n");
+                    gameSessions.get(gameID).remove(ctx);
+
+                    for (WsContext client : gameSessions.get(gameID)) {
+                        try {
                             client.send(serializer.toJson(notificationMessage));
 
                         } catch (Exception e) {
