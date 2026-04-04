@@ -138,29 +138,7 @@ public class Server {
         ChessGame game = gameData.game();
 
         if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.CONNECT)) {
-            LoadGameMessage loadMessage = new LoadGameMessage(game);
-
-            NotificationMessage notificationMessage;
-
-            if (Objects.equals(gameData.whiteUsername(), user.username())) {
-                notificationMessage = new NotificationMessage("Player " + user.username() + " joined as WHITE.\n");
-            } else if (Objects.equals(gameData.blackUsername(), user.username())) {
-                notificationMessage = new NotificationMessage("Player " + user.username() + " joined as BLACK.\n");
-            } else {
-                notificationMessage = new NotificationMessage("Player " + user.username() + " joined as an OBSERVER.\n");
-            }
-
-            for (WsContext client : gameSessions.get(gameID)) {
-                try {
-                    if (!Objects.equals(client, ctx)) {
-                        client.send(serializer.toJson(notificationMessage));
-                    } else {
-                        client.send(serializer.toJson(loadMessage));
-                    }
-                } catch (Exception e) {
-                    gameSessions.get(gameID).remove(client);
-                }
-            }
+            connect(game, gameData, user, ctx, gameID);
         } else if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.MAKE_MOVE)) {
             makeMove(command, game, gameData, user, ctx, gameID);
         } else if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.RESIGN)) {
@@ -310,9 +288,7 @@ public class Server {
 
         for (WsContext client : gameSessions.get(gameID)) {
             try {
-                if (specialMessage != null) {
-                    client.send(serializer.toJson(specialMessage));
-                }
+                if (specialMessage != null) { client.send(serializer.toJson(specialMessage)); }
 
                 if (!Objects.equals(client, ctx)) {
                     client.send(serializer.toJson(notificationMessage));
@@ -321,6 +297,32 @@ public class Server {
                     client.send(serializer.toJson(loadMessage));
                 }
 
+            } catch (Exception e) { gameSessions.get(gameID).remove(client); }
+        }
+    }
+
+    private void connect(ChessGame game, GameData gameData,
+                         AuthData user, WsContext ctx, Integer gameID) {
+        var serializer = new Gson();
+        LoadGameMessage loadMessage = new LoadGameMessage(game);
+
+        NotificationMessage notificationMessage;
+
+        if (Objects.equals(gameData.whiteUsername(), user.username())) {
+            notificationMessage = new NotificationMessage("Player " + user.username() + " joined as WHITE.\n");
+        } else if (Objects.equals(gameData.blackUsername(), user.username())) {
+            notificationMessage = new NotificationMessage("Player " + user.username() + " joined as BLACK.\n");
+        } else {
+            notificationMessage = new NotificationMessage("Player " + user.username() + " joined as an OBSERVER.\n");
+        }
+
+        for (WsContext client : gameSessions.get(gameID)) {
+            try {
+                if (!Objects.equals(client, ctx)) {
+                    client.send(serializer.toJson(notificationMessage));
+                } else {
+                    client.send(serializer.toJson(loadMessage));
+                }
             } catch (Exception e) {
                 gameSessions.get(gameID).remove(client);
             }
