@@ -188,35 +188,16 @@ public class Server {
 
                     NotificationMessage specialMessage = null;
 
-                    boolean checkmate = game.isInCheckmate(oppositeColor);
-                    if (checkmate) {
-                        specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is checkmated.");
 
-                        for (WsContext client : gameSessions.get(gameID)) {
-                            try {
-                                if (!client.session.isOpen()) {
-                                    gameSessions.get(gameID).remove(client);
-                                }
-
-                                if (specialMessage != null) {
-                                    client.send(serializer.toJson(specialMessage));
-                                }
-
-                                client.send(serializer.toJson(specialMessage));
-                                client.send(serializer.toJson(loadMessage));
-
-                            } catch (Exception e) {
-                                gameSessions.get(gameID).remove(client);
-                            }
-                        }
-
-                        return;
-                    }
 
                     boolean check = game.isInCheck(oppositeColor);
                     if (check) {
                         specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is in check.");
-                        ctx.send(serializer.toJson(specialMessage));
+
+                        boolean checkmate = game.isInCheckmate(oppositeColor);
+                        if (checkmate) {
+                            specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is checkmated.");
+                        }
                     }
 
                     boolean stalemate = game.isInStalemate(oppositeColor);
