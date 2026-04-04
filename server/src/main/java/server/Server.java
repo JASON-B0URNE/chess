@@ -289,6 +289,18 @@ public class Server {
                     NotificationMessage notificationMessage = new NotificationMessage("Player " + user.username() + " has left the game.\n");
                     gameSessions.get(gameID).remove(ctx);
 
+                    GameDOA gameDOA = new GameDOA();
+
+                    if (Objects.equals(gameData.whiteUsername(), user.username())) {
+                        GameData updateData = new GameData(gameID, null, gameData.blackUsername(),
+                                gameData.gameName(), game);
+                        gameDOA.replace(updateData);
+                    } else if (Objects.equals(gameData.blackUsername(), user.username())) {
+                        GameData updateData = new GameData(gameID, gameData.whiteUsername(), null,
+                                gameData.gameName(), game);
+                        gameDOA.replace(updateData);
+                    }
+
                     for (WsContext client : gameSessions.get(gameID)) {
                         try {
                             client.send(serializer.toJson(notificationMessage));
