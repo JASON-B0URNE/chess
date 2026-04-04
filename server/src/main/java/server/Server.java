@@ -5,6 +5,7 @@ import chess.ChessGame;
 import chess.ChessMove;
 import chess.ChessPosition;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import dataaccess.GameDOA;
 import io.javalin.*;
 import io.javalin.websocket.WsContext;
@@ -35,16 +36,14 @@ import static dataaccess.DatabaseManager.createTables;
 
 public class Server {
     private final Javalin javalin;
+    private AuthService authService = new AuthService();
+    private UserService userService = new UserService();
+    private GameService gameService = new GameService();
+    private Map<Integer, Set<WsContext>> gameSessions = new ConcurrentHashMap<>();
+    private Map<Integer, String> gameStatus = new ConcurrentHashMap<>();
 
     public Server() {
         var serializer = new Gson();
-
-        AuthService authService = new AuthService();
-        UserService userService = new UserService();
-        GameService gameService = new GameService();
-
-        Map<Integer, Set<WsContext>> gameSessions = new ConcurrentHashMap<>();
-        Map<Integer, String> gameStatus = new ConcurrentHashMap<>();
 
         try {
             createDatabase();
@@ -101,220 +100,225 @@ public class Server {
 
         javalin.ws("/ws", ws -> {
             ws.onMessage(ctx -> {
-                UserGameCommand message = serializer.fromJson(ctx.message(), UserGameCommand.class);
+                websocket(ctx, ctx.message());
+            });
+        });
+    }
 
-                AuthData user = authService.getUser(message);
-                GameData gameData = gameService.getGame(message);
+    private void websocket(WsContext ctx, String command) throws SQLException {
+        var serializer = new Gson();
+        UserGameCommand message = serializer.fromJson(command, UserGameCommand.class);
 
-                if (user == null || gameData == null) {
-                    ErrorMessage errorMessage = new ErrorMessage("Error: Invalid user command.\n");
+        AuthData user = authService.getUser(message);
+        GameData gameData = gameService.getGame(message);
+
+        if (user == null || gameData == null) {
+            ErrorMessage errorMessage = new ErrorMessage("Error: Invalid user command.\n");
+            ctx.send(serializer.toJson(errorMessage));
+
+            return;
+        }
+
+        Integer gameID = gameData.gameID();
+
+        if (gameSessions.get(gameID) != null && !gameSessions.get(gameID).isEmpty()) {
+            for (WsContext client : gameSessions.get(gameID)) {
+                if (!client.session.isOpen()) {
+                    gameSessions.get(gameID).remove(client);
+                }
+            }
+            if (gameSessions.get(gameID).isEmpty()) {
+                gameStatus.remove(gameID);
+            }
+        }
+
+        gameSessions.putIfAbsent(gameID, ConcurrentHashMap.newKeySet());
+        gameSessions.get(gameID).add(ctx);
+        gameStatus.putIfAbsent(gameID, "NORMAL");
+
+        ChessGame game = gameData.game();
+
+        if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.CONNECT)) {
+            LoadGameMessage loadMessage = new LoadGameMessage(game);
+
+            NotificationMessage notificationMessage;
+
+            if (Objects.equals(gameData.whiteUsername(), user.username())) {
+                notificationMessage = new NotificationMessage("Player " + user.username() + " joined as WHITE.\n");
+            } else if (Objects.equals(gameData.blackUsername(), user.username())) {
+                notificationMessage = new NotificationMessage("Player " + user.username() + " joined as BLACK.\n");
+            } else {
+                notificationMessage = new NotificationMessage("Player " + user.username() + " joined as an OBSERVER.\n");
+            }
+
+            for (WsContext client : gameSessions.get(gameID)) {
+                try {
+                    if (!Objects.equals(client, ctx)) {
+                        client.send(serializer.toJson(notificationMessage));
+                    } else {
+                        client.send(serializer.toJson(loadMessage));
+                    }
+                } catch (Exception e) {
+                    gameSessions.get(gameID).remove(client);
+                }
+            }
+        } else if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.MAKE_MOVE)) {
+            MakeMoveCommand makeMove = serializer.fromJson(command, MakeMoveCommand.class);
+            ChessMove move = makeMove.getMove();
+            ChessPosition startPosition = new ChessPosition(move.getStartPosition().getRow(), move.getStartPosition().getColumn());
+            ChessPosition endPosition = new ChessPosition(move.getEndPosition().getRow(), move.getEndPosition().getColumn());
+
+            NotificationMessage notificationMessage;
+
+            move = new ChessMove(startPosition, endPosition, move.getPromotionPiece());
+            ChessBoard board = game.getBoard();
+
+            ChessGame.TeamColor currentColor = game.getTeamTurn();
+
+            ChessGame.TeamColor oppositeColor;
+            String oppositeUsername;
+
+            if (currentColor == ChessGame.TeamColor.BLACK) {
+                oppositeColor = ChessGame.TeamColor.WHITE;
+                oppositeUsername = gameData.whiteUsername();
+            } else {
+                oppositeColor = ChessGame.TeamColor.BLACK;
+                oppositeUsername = gameData.blackUsername();
+            }
+
+            if (Objects.equals(user.username(), oppositeUsername)) {
+                ErrorMessage errorMessage = new ErrorMessage("Error: Invalid move.\n");
+                ctx.send(serializer.toJson(errorMessage));
+
+                return;
+            }
+
+            try {
+                if (!Objects.equals(gameStatus.get(gameID), "NORMAL")) {
+                    ErrorMessage errorMessage = new ErrorMessage("Error: Game is not in session.\n");
                     ctx.send(serializer.toJson(errorMessage));
 
                     return;
                 }
 
-                Integer gameID = gameData.gameID();
+                game.makeMove(move);
+            } catch (Exception e) {
+                ErrorMessage errorMessage = new ErrorMessage("Error: Invalid move.\n");
+                ctx.send(serializer.toJson(errorMessage));
 
-                if (gameSessions.get(gameID) != null && !gameSessions.get(gameID).isEmpty()) {
-                    for (WsContext client : gameSessions.get(gameID)) {
-                        if (!client.session.isOpen()) {
-                            gameSessions.get(gameID).remove(client);
-                        }
-                    }
-                    if (gameSessions.get(gameID).isEmpty()) {
-                        gameStatus.remove(gameID);
-                    }
+                return;
+            }
+
+            LoadGameMessage loadMessage = new LoadGameMessage(game);
+            GameDOA gameDOA = new GameDOA();
+            GameData updateData = new GameData(gameID, gameData.whiteUsername(), gameData.blackUsername(),
+                    gameData.gameName(), game);
+            gameDOA.replace(updateData);
+
+            NotificationMessage specialMessage = null;
+
+            boolean check = game.isInCheck(oppositeColor);
+            if (check) {
+                specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is in check.\n");
+
+                boolean checkmate = game.isInCheckmate(oppositeColor);
+                if (checkmate) {
+                    specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is checkmated.\n");
                 }
+            }
 
-                gameSessions.putIfAbsent(gameID, ConcurrentHashMap.newKeySet());
-                gameSessions.get(gameID).add(ctx);
-                gameStatus.putIfAbsent(gameID, "NORMAL");
+            boolean stalemate = game.isInStalemate(oppositeColor);
+            if (stalemate) {
+                specialMessage = new NotificationMessage("Game is in stalemate.\n");
+                gameStatus.put(gameID, "STALEMATE");
+            }
 
-                ChessGame game = gameData.game();
+            if (Objects.equals(gameData.whiteUsername(), user.username())) {
+                notificationMessage = new NotificationMessage("WHITE Player " + user.username() + " - moved " +
+                        board.getPiece(move.getStartPosition()).toString() +
+                        " " + parsePosition(move.getStartPosition()) + " to " + parsePosition(move.getEndPosition()) + ".\n");
+            } else if (Objects.equals(gameData.blackUsername(), user.username())) {
+                notificationMessage = new NotificationMessage("BLACK Player " + user.username() + " - moved " +
+                        board.getPiece(move.getStartPosition()).toString() +
+                        " " + parsePosition(move.getStartPosition()) + " to " + parsePosition(move.getEndPosition()) + ".\n");
+            } else {
+                ErrorMessage errorMessage = new ErrorMessage("Error: Invalid user command.\n");
+                ctx.send(serializer.toJson(errorMessage));
 
-                if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.CONNECT)) {
-                    LoadGameMessage loadMessage = new LoadGameMessage(game);
+                return;
+            }
 
-                    NotificationMessage notificationMessage;
+            for (WsContext client : gameSessions.get(gameID)) {
+                try {
+                    if (specialMessage != null) {
+                        client.send(serializer.toJson(specialMessage));
+                    }
 
-                    if (Objects.equals(gameData.whiteUsername(), user.username())) {
-                        notificationMessage = new NotificationMessage("Player " + user.username() + " joined as WHITE.\n");
-                    } else if (Objects.equals(gameData.blackUsername(), user.username())) {
-                        notificationMessage = new NotificationMessage("Player " + user.username() + " joined as BLACK.\n");
+                    if (!Objects.equals(client, ctx)) {
+                        client.send(serializer.toJson(notificationMessage));
+                        client.send(serializer.toJson(loadMessage));
                     } else {
-                        notificationMessage = new NotificationMessage("Player " + user.username() + " joined as an OBSERVER.\n");
+                        client.send(serializer.toJson(loadMessage));
                     }
 
-                    for (WsContext client : gameSessions.get(gameID)) {
-                        try {
-                            if (!Objects.equals(client, ctx)) {
-                                client.send(serializer.toJson(notificationMessage));
-                            } else {
-                                client.send(serializer.toJson(loadMessage));
-                            }
-                        } catch (Exception e) {
-                            gameSessions.get(gameID).remove(client);
-                        }
-                    }
-                } else if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.MAKE_MOVE)) {
-                    MakeMoveCommand makeMove = serializer.fromJson(ctx.message(), MakeMoveCommand.class);
-                    ChessMove move = makeMove.getMove();
-                    ChessPosition startPosition = new ChessPosition(move.getStartPosition().getRow(), move.getStartPosition().getColumn());
-                    ChessPosition endPosition = new ChessPosition(move.getEndPosition().getRow(), move.getEndPosition().getColumn());
-
-                    NotificationMessage notificationMessage;
-
-                    move = new ChessMove(startPosition, endPosition, move.getPromotionPiece());
-                    ChessBoard board = game.getBoard();
-
-                    ChessGame.TeamColor currentColor = game.getTeamTurn();
-
-                    ChessGame.TeamColor oppositeColor;
-                    String oppositeUsername;
-
-                    if (currentColor == ChessGame.TeamColor.BLACK) {
-                        oppositeColor = ChessGame.TeamColor.WHITE;
-                        oppositeUsername = gameData.whiteUsername();
-                    } else {
-                        oppositeColor = ChessGame.TeamColor.BLACK;
-                        oppositeUsername = gameData.blackUsername();
-                    }
-
-                    if (Objects.equals(user.username(), oppositeUsername)) {
-                        ErrorMessage errorMessage = new ErrorMessage("Error: Invalid move.\n");
-                        ctx.send(serializer.toJson(errorMessage));
-
-                        return;
-                    }
-
-                    try {
-                        if (!Objects.equals(gameStatus.get(gameID), "NORMAL")) {
-                            ErrorMessage errorMessage = new ErrorMessage("Error: Game is not in session.\n");
-                            ctx.send(serializer.toJson(errorMessage));
-
-                            return;
-                        }
-
-                        game.makeMove(move);
-                    } catch (Exception e) {
-                        ErrorMessage errorMessage = new ErrorMessage("Error: Invalid move.\n");
-                        ctx.send(serializer.toJson(errorMessage));
-
-                        return;
-                    }
-
-                    LoadGameMessage loadMessage = new LoadGameMessage(game);
-                    GameDOA gameDOA = new GameDOA();
-                    GameData updateData = new GameData(gameID, gameData.whiteUsername(), gameData.blackUsername(),
-                            gameData.gameName(), game);
-                    gameDOA.replace(updateData);
-
-                    NotificationMessage specialMessage = null;
-
-                    boolean check = game.isInCheck(oppositeColor);
-                    if (check) {
-                        specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is in check.\n");
-
-                        boolean checkmate = game.isInCheckmate(oppositeColor);
-                        if (checkmate) {
-                            specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is checkmated.\n");
-                        }
-                    }
-
-                    boolean stalemate = game.isInStalemate(oppositeColor);
-                    if (stalemate) {
-                        specialMessage = new NotificationMessage("Game is in stalemate.\n");
-                        gameStatus.put(gameID, "STALEMATE");
-                    }
-
-                    if (Objects.equals(gameData.whiteUsername(), user.username())) {
-                        notificationMessage = new NotificationMessage("WHITE Player " + user.username() + " - moved " +
-                                board.getPiece(move.getStartPosition()).toString() +
-                                " " + parsePosition(move.getStartPosition()) + " to " + parsePosition(move.getEndPosition()) +".\n");
-                    } else if (Objects.equals(gameData.blackUsername(), user.username())) {
-                        notificationMessage = new NotificationMessage("BLACK Player " + user.username() + " - moved " +
-                                board.getPiece(move.getStartPosition()).toString() +
-                                " " + parsePosition(move.getStartPosition()) + " to " + parsePosition(move.getEndPosition()) +".\n");
-                    } else {
-                        ErrorMessage errorMessage = new ErrorMessage("Error: Invalid user command.\n");
-                        ctx.send(serializer.toJson(errorMessage));
-
-                        return;
-                    }
-
-                    for (WsContext client : gameSessions.get(gameID)) {
-                        try {
-                            if (specialMessage != null) {
-                                client.send(serializer.toJson(specialMessage));
-                            }
-
-                            if (!Objects.equals(client, ctx)) {
-                                client.send(serializer.toJson(notificationMessage));
-                                client.send(serializer.toJson(loadMessage));
-                            } else {
-                                client.send(serializer.toJson(loadMessage));
-                            }
-
-                        } catch (Exception e) {
-                            gameSessions.get(gameID).remove(client);
-                        }
-                    }
-                } else if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.RESIGN)) {
-                    if (!Objects.equals(gameStatus.get(gameID), "NORMAL")) {
-                        ErrorMessage errorMessage = new ErrorMessage("Error: Game is not in session.\n");
-                        ctx.send(serializer.toJson(errorMessage));
-
-                        return;
-                    }
-
-                    if (!Objects.equals(user.username(), gameData.blackUsername()) &&
-                            !Objects.equals(user.username(), gameData.whiteUsername())) {
-                        ErrorMessage errorMessage = new ErrorMessage("Error: Invalid command.\n");
-                        ctx.send(serializer.toJson(errorMessage));
-
-                        return;
-                    }
-
-                    NotificationMessage notificationMessage = null;
-                    notificationMessage = new NotificationMessage("Player " + user.username() + " has resigned.\n");
-
-                    gameStatus.put(gameID, "RESIGN");
-
-                    for (WsContext client : gameSessions.get(gameID)) {
-                        try {
-                            client.send(serializer.toJson(notificationMessage));
-
-                        } catch (Exception e) {
-                            gameSessions.get(gameID).remove(client);
-                        }
-                    }
-                } else if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.LEAVE)) {
-                    NotificationMessage notificationMessage = new NotificationMessage("Player " + user.username() + " has left the game.\n");
-                    gameSessions.get(gameID).remove(ctx);
-
-                    GameDOA gameDOA = new GameDOA();
-
-                    if (Objects.equals(gameData.whiteUsername(), user.username())) {
-                        GameData updateData = new GameData(gameID, null, gameData.blackUsername(),
-                                gameData.gameName(), game);
-                        gameDOA.replace(updateData);
-                    } else if (Objects.equals(gameData.blackUsername(), user.username())) {
-                        GameData updateData = new GameData(gameID, gameData.whiteUsername(), null,
-                                gameData.gameName(), game);
-                        gameDOA.replace(updateData);
-                    }
-
-                    for (WsContext client : gameSessions.get(gameID)) {
-                        try {
-                            client.send(serializer.toJson(notificationMessage));
-
-                        } catch (Exception e) {
-                            gameSessions.get(gameID).remove(client);
-                        }
-                    }
+                } catch (Exception e) {
+                    gameSessions.get(gameID).remove(client);
                 }
-            });
-        });
+            }
+        } else if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.RESIGN)) {
+            if (!Objects.equals(gameStatus.get(gameID), "NORMAL")) {
+                ErrorMessage errorMessage = new ErrorMessage("Error: Game is not in session.\n");
+                ctx.send(serializer.toJson(errorMessage));
+
+                return;
+            }
+
+            if (!Objects.equals(user.username(), gameData.blackUsername()) &&
+                    !Objects.equals(user.username(), gameData.whiteUsername())) {
+                ErrorMessage errorMessage = new ErrorMessage("Error: Invalid command.\n");
+                ctx.send(serializer.toJson(errorMessage));
+
+                return;
+            }
+
+            NotificationMessage notificationMessage = null;
+            notificationMessage = new NotificationMessage("Player " + user.username() + " has resigned.\n");
+
+            gameStatus.put(gameID, "RESIGN");
+
+            for (WsContext client : gameSessions.get(gameID)) {
+                try {
+                    client.send(serializer.toJson(notificationMessage));
+
+                } catch (Exception e) {
+                    gameSessions.get(gameID).remove(client);
+                }
+            }
+        } else if (Objects.equals(message.getCommandType(), UserGameCommand.CommandType.LEAVE)) {
+            NotificationMessage notificationMessage = new NotificationMessage("Player " + user.username() + " has left the game.\n");
+            gameSessions.get(gameID).remove(ctx);
+
+            GameDOA gameDOA = new GameDOA();
+
+            if (Objects.equals(gameData.whiteUsername(), user.username())) {
+                GameData updateData = new GameData(gameID, null, gameData.blackUsername(),
+                        gameData.gameName(), game);
+                gameDOA.replace(updateData);
+            } else if (Objects.equals(gameData.blackUsername(), user.username())) {
+                GameData updateData = new GameData(gameID, gameData.whiteUsername(), null,
+                        gameData.gameName(), game);
+                gameDOA.replace(updateData);
+            }
+
+            for (WsContext client : gameSessions.get(gameID)) {
+                try {
+                    client.send(serializer.toJson(notificationMessage));
+
+                } catch (Exception e) {
+                    gameSessions.get(gameID).remove(client);
+                }
+            }
+        }
     }
 
     private String parsePosition(ChessPosition position) {
