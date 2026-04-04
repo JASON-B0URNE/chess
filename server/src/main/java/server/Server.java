@@ -106,7 +106,7 @@ public class Server {
                 GameData gameData = gameService.getGame(message);
 
                 if (user == null || gameData == null) {
-                    ErrorMessage errorMessage = new ErrorMessage("Error: Invalid user command.");
+                    ErrorMessage errorMessage = new ErrorMessage("Error: Invalid user command.\n");
                     ctx.send(serializer.toJson(errorMessage));
 
                     return;
@@ -166,13 +166,20 @@ public class Server {
                         oppositeUsername = gameData.whiteUsername();
                     } else {
                         oppositeColor = ChessGame.TeamColor.BLACK;
-                        oppositeUsername = gameData.whiteUsername();
+                        oppositeUsername = gameData.blackUsername();
+                    }
+
+                    if (Objects.equals(user.username(), oppositeUsername)) {
+                        ErrorMessage errorMessage = new ErrorMessage("Error: Invalid move.\n");
+                        ctx.send(serializer.toJson(errorMessage));
+
+                        return;
                     }
 
                     try {
                         game.makeMove(move);
                     } catch (Exception e) {
-                        ErrorMessage errorMessage = new ErrorMessage("Error: Invalid move.");
+                        ErrorMessage errorMessage = new ErrorMessage("Error: Invalid move.\n");
                         ctx.send(serializer.toJson(errorMessage));
 
                         return;
@@ -188,19 +195,21 @@ public class Server {
 
                     NotificationMessage specialMessage = null;
 
-
-
                     boolean check = game.isInCheck(oppositeColor);
                     if (check) {
-                        specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is in check.");
+                        specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is in check.\n");
 
                         boolean checkmate = game.isInCheckmate(oppositeColor);
                         if (checkmate) {
-                            specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is checkmated.");
+                            specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is checkmated.\n");
                         }
                     }
 
                     boolean stalemate = game.isInStalemate(oppositeColor);
+                    if (stalemate) {
+                        specialMessage = new NotificationMessage("Game is in stalemate.\n");
+
+                    }
 
                     if (Objects.equals(gameData.whiteUsername(), user.username())) {
                         notificationMessage = new NotificationMessage("WHITE Player " + user.username() + " - moved " + board.getPiece(move.getStartPosition()).toString()
@@ -208,7 +217,7 @@ public class Server {
                     } else if (Objects.equals(gameData.blackUsername(), user.username())) {
                         notificationMessage = new NotificationMessage("BLACK Player " + user.username() + " - moved " + board.getPiece(move.getStartPosition()).toString()
                                 + " " + parsePosition(move.getStartPosition()) + " to " + parsePosition(move.getEndPosition()) +"\n");                    } else {
-                        ErrorMessage errorMessage = new ErrorMessage("Error: Invalid user command.");
+                        ErrorMessage errorMessage = new ErrorMessage("Error: Invalid user command.\n");
                         ctx.send(serializer.toJson(errorMessage));
 
                         return;
