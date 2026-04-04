@@ -5,7 +5,6 @@ import chess.ChessGame;
 import chess.ChessMove;
 import chess.ChessPosition;
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import dataaccess.GameDOA;
 import io.javalin.*;
 import io.javalin.websocket.WsContext;
