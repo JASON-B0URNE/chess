@@ -197,8 +197,9 @@ public class Server {
         }
     }
 
-    private void makeMove(String command, ChessGame game, GameData gameData,
-            AuthData user, WsContext ctx, Integer gameID) throws SQLException {
+    private void makeMove(String command, ChessGame game,
+          GameData gameData, AuthData user, WsContext ctx,
+          Integer gameID) throws SQLException {
         var serializer = new Gson();
 
         MakeMoveCommand makeMove = serializer.fromJson(command, MakeMoveCommand.class);
@@ -252,13 +253,11 @@ public class Server {
         GameData updateData = new GameData(gameID, gameData.whiteUsername(), gameData.blackUsername(),
                 gameData.gameName(), game);
         gameDOA.replace(updateData);
-
         NotificationMessage specialMessage = null;
 
         boolean check = game.isInCheck(oppositeColor);
         if (check) {
             specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is in check.\n");
-
             boolean checkmate = game.isInCheckmate(oppositeColor);
             if (checkmate) {
                 specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is checkmated.\n");
@@ -282,21 +281,18 @@ public class Server {
         } else {
             ErrorMessage errorMessage = new ErrorMessage("Error: Invalid user command.\n");
             ctx.send(serializer.toJson(errorMessage));
-
             return;
         }
 
         for (WsContext client : gameSessions.get(gameID)) {
             try {
                 if (specialMessage != null) { client.send(serializer.toJson(specialMessage)); }
-
                 if (!Objects.equals(client, ctx)) {
                     client.send(serializer.toJson(notificationMessage));
                     client.send(serializer.toJson(loadMessage));
                 } else {
                     client.send(serializer.toJson(loadMessage));
                 }
-
             } catch (Exception e) { gameSessions.get(gameID).remove(client); }
         }
     }
