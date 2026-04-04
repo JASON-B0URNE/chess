@@ -321,7 +321,8 @@ public class ClientMain {
         } catch (InvalidMoveException e) {
             System.out.print(SET_TEXT_COLOR_RED + "ERROR: Invalid chess move." + RESET_TEXT_COLOR + "\n");
             System.out.print(SET_TEXT_COLOR_BLUE + "HINT: Run the 'highlight position' command for valid moves." + RESET_TEXT_COLOR + "\n");
-            System.out.print(SET_TEXT_COLOR_BLUE + "EXAMPLE: highlight a1 - gives a list of valid moves for the piece on a1." + RESET_TEXT_COLOR + "\n");
+            System.out.print(SET_TEXT_COLOR_BLUE + "EXAMPLE: highlight a1 - gives a list of valid moves for the piece on a1."
+                    + RESET_TEXT_COLOR + "\n");
 
             return;
         }

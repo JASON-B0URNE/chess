@@ -65,14 +65,10 @@ public class PrintBoard {
                     }
                 }
 
-                if (tiles != null) {
-                    if (tiles.contains(new ChessPosition(row + 1, col + 1))) {
-                        if (Objects.equals(bgColor, SET_BG_COLOR_LIGHT_GREY)) {
-                            bgColor = SET_BG_COLOR_GREEN;
-                        } else if (Objects.equals(bgColor, SET_BG_COLOR_DARK_GREY)) {
-                            bgColor = SET_BG_COLOR_DARK_GREEN;
-                        }
-                    }
+                String color = tilesHighlight(tiles, row, col, bgColor);
+
+                if (color != null) {
+                    bgColor = color;
                 }
 
                 ChessPiece piece = board.getPiece(new ChessPosition(row + 1, col + 1));
@@ -92,5 +88,22 @@ public class PrintBoard {
             System.out.print("\n");
         }
         printRowHeader(cols);
+    }
+
+    private static String tilesHighlight(Collection<ChessPosition> tiles,
+                                         Integer row, Integer col, String bgColor) {
+        String color = null;
+
+        if (tiles != null) {
+            if (tiles.contains(new ChessPosition(row + 1, col + 1))) {
+                if (Objects.equals(bgColor, SET_BG_COLOR_LIGHT_GREY)) {
+                    color = SET_BG_COLOR_GREEN;
+                } else if (Objects.equals(bgColor, SET_BG_COLOR_DARK_GREY)) {
+                    color = SET_BG_COLOR_DARK_GREEN;
+                }
+            }
+        }
+
+        return color;
     }
 }

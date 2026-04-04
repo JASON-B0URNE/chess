@@ -23,10 +23,12 @@ public class Output {
             if (Objects.equals(gameStatus,"PLAYING")) {
                 System.out.print(SET_TEXT_COLOR_BLUE + "redraw" + RESET_TEXT_COLOR);
                 System.out.print(" - chess board\n");
-                System.out.print(SET_TEXT_COLOR_BLUE + "move <POSITION> <POSITION> (OPTIONAL PROMOTION TYPE - QUEEN|ROOK|KNIGHT|BISHOP)" + RESET_TEXT_COLOR);
+                System.out.print(SET_TEXT_COLOR_BLUE + "move <POSITION> <POSITION> (OPTIONAL PROMOTION TYPE - QUEEN|ROOK|KNIGHT|BISHOP)"
+                        + RESET_TEXT_COLOR);
                 System.out.print(" - chess pieces\n");
                 System.out.print(SET_TEXT_COLOR_MAGENTA);
-                System.out.print("EXAMPLES:\nmove a8 a6 - move a standard piece from a8 to a6\nmove c7 c8 QUEEN - move a pawn from c7 to c8 and promote it to QUEEN\n");
+                System.out.print("EXAMPLES:\nmove a8 a6 - move a standard piece from a8 to a6\n" +
+                        "move c7 c8 QUEEN - move a pawn from c7 to c8 and promote it to QUEEN\n");
                 System.out.print(RESET_TEXT_COLOR);
                 System.out.print(SET_TEXT_COLOR_BLUE + "resign" + RESET_TEXT_COLOR);
                 System.out.print(" - chess match\n");
