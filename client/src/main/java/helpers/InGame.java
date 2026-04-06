@@ -4,6 +4,7 @@ import chess.ChessBoard;
 import chess.ChessGame;
 import chess.ChessMove;
 import chess.ChessPosition;
+import client.WebSocket;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -20,14 +21,16 @@ public class InGame {
     ChessBoard chessBoard;
     ChessGame chessGame;
     ChessGame.TeamColor color;
+    WebSocket wsConnection;
 
     public InGame(String status, String gameStatus, ChessBoard chessBoard,
-                  ChessGame chessGame, ChessGame.TeamColor color) {
+                  ChessGame chessGame, ChessGame.TeamColor color, WebSocket wsConnection) {
         this.status = status;
         this.gameStatus = gameStatus;
         this.chessBoard = chessBoard;
         this.chessGame = chessGame;
         this.color = color;
+        this.wsConnection = wsConnection;
     }
 
     public void redraw(ArrayList<String> commandList) {

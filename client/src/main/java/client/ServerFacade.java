@@ -1,6 +1,7 @@
 package client;
 
 import com.google.gson.Gson;
+import jakarta.websocket.*;
 import requests.Response;
 
 import java.io.IOException;
@@ -9,15 +10,18 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.WebSocket;
 import java.util.Locale;
 import java.util.Map;
 
 public class ServerFacade {
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final String baseUrl;
+    private final String webSocketUrl;
 
     public ServerFacade(int port) {
         this.baseUrl = String.format(Locale.getDefault(),"http://localhost:" + port + "/");
+        this.webSocketUrl = String.format(Locale.getDefault(),"ws://localhost:" + port + "/");
     }
 
     public Response clear() throws URISyntaxException, IOException, InterruptedException {

@@ -6,9 +6,15 @@ import helpers.InGame;
 import helpers.Output;
 import model.AuthData;
 import requests.Response;
+import websocket.commands.MakeMoveCommand;
+import websocket.commands.UserGameCommand;
+import websocket.messages.LoadGameMessage;
+import websocket.messages.ServerMessage;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 import static helpers.Output.*;
 import static helpers.Validation.validatePosition;
@@ -25,6 +31,8 @@ public class ClientMain {
     private static AuthData session;
     private static Collection<Map<String, String>> listGames;
     private static ChessGame.TeamColor color;
+    private static WebSocket wsConnection;
+    private static Integer selectedGameID;
 
     private static void clearDatabase() {
 
@@ -86,7 +94,13 @@ public class ClientMain {
         }
         try {
             int gameID = Integer.parseInt(commandList.get(1));
+            int selectedGameID = gameID;
+
             Response response = facade.joinGame(session.authToken(), commandList.get(2), gameID);
+            handleResponse(wsConnection.connect(new UserGameCommand(
+                    UserGameCommand.CommandType.CONNECT, session.authToken(), gameID
+            )));
+
             if (!Objects.equals(response.code(), 200)) {
                 handleErrors(response.code());
             } else {
@@ -98,8 +112,6 @@ public class ClientMain {
                 } else {
                     color = ChessGame.TeamColor.WHITE;
                 }
-
-                printBoard(chessBoard, color, null);
             }
         } catch (Exception e) {
             invalidCommand();
@@ -316,30 +328,22 @@ public class ClientMain {
 
         ChessMove move = new ChessMove(startPosition, endPosition, promotionPiece);
         try {
-            chessGame.makeMove(move);
-            chessBoard = chessGame.getBoard();
-        } catch (InvalidMoveException e) {
-            System.out.print(SET_TEXT_COLOR_RED + "ERROR: Invalid chess move." + RESET_TEXT_COLOR + "\n");
-            System.out.print(SET_TEXT_COLOR_BLUE + "HINT: Run the 'highlight position' command for valid moves." + RESET_TEXT_COLOR + "\n");
-            System.out.print(SET_TEXT_COLOR_BLUE + "EXAMPLE: highlight a1 - gives a list of valid moves for the piece on a1."
-                    + RESET_TEXT_COLOR + "\n");
-
+            handleResponse(wsConnection.sendMove(new MakeMoveCommand(
+                    session.authToken(), selectedGameID, move
+            )));
+        } catch (Exception e) {
             return;
         }
-
-        System.out.print(SET_TEXT_COLOR_GREEN + "Move completed successfully." + RESET_TEXT_COLOR + "\n");
-
-        printBoard(chessBoard, color, null);
     }
 
-    private void parseCommand(String line) {
+    private void parseCommand(String line) throws IOException, ExecutionException, InterruptedException {
         var args = line.split(" ");
 
         ArrayList<String> commandList = new ArrayList<>(Arrays.asList(args));
         String command = commandList.getFirst().toLowerCase();
 
         InGame gameActions = new InGame(status, gameStatus, chessBoard,
-                chessGame, color);
+                chessGame, color, wsConnection);
 
         if (Objects.equals(command, "register")) {
             register(commandList);
@@ -375,6 +379,9 @@ public class ClientMain {
             move(commandList);
         } else if (Objects.equals(command, "resign")) {
             gameActions.resign(commandList);
+            handleResponse(wsConnection.resign(new UserGameCommand(
+                    UserGameCommand.CommandType.RESIGN, session.authToken(), selectedGameID
+            )));
         } else if (Objects.equals(command, "highlight")) {
             gameActions.highlight(commandList);
         } else {
@@ -382,7 +389,17 @@ public class ClientMain {
         }
     }
 
-    void main(String[] args) {
+    void handleResponse(String response) {
+        var serializer = new Gson();
+        if (response.contains("LOAD_GAME")) {
+            LoadGameMessage load = serializer.fromJson(response, LoadGameMessage.class);
+            chessGame = load.getGame();
+
+            printBoard(chessBoard, color, null);
+        }
+    }
+
+    void main(String[] args) throws IOException, ExecutionException, InterruptedException {
         chessBoard.resetBoard();
         facade = new ServerFacade(8080);
         System.out.println("♕ Welcome to 240 chess. Type Help to get started. ♕");
