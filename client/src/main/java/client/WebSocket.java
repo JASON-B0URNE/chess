@@ -5,53 +5,80 @@ import com.google.gson.Gson;
 import jakarta.websocket.*;
 import websocket.commands.MakeMoveCommand;
 import websocket.commands.UserGameCommand;
+import websocket.messages.ErrorMessage;
+import websocket.messages.LoadGameMessage;
+import websocket.messages.NotificationMessage;
 
 import java.io.IOException;
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import static helpers.PrintBoard.printBoard;
+import static ui.EscapeSequences.*;
+
 @ClientEndpoint
 public class WebSocket {
-
     private static Session session;
 
-    public String resign(UserGameCommand resign) throws IOException, ExecutionException, InterruptedException {
+    @OnMessage
+    public void onMessage(String message) throws IOException, ExecutionException, InterruptedException {
         var serializer = new Gson();
-        CompletableFuture<String> future = new CompletableFuture<>();
+        try {
+            if (message.contains("NOTIFICATION")) {
+                NotificationMessage notification = serializer.fromJson(
+                        message, NotificationMessage.class
+                );
+                String notificationMessage = notification.getMessage();
+                System.out.print(SET_TEXT_COLOR_GREEN + notificationMessage + RESET_TEXT_COLOR + "\n");
+                System.out.print("[PLAYING] >>> ");
+            } else if (message.contains("ERROR")) {
+                ErrorMessage error = serializer.fromJson(
+                        message, ErrorMessage.class
+                );
+
+                String notificationMessage = error.getMessage();
+                System.out.print(SET_TEXT_COLOR_RED + notificationMessage + RESET_TEXT_COLOR + "\n");
+                System.out.print("[PLAYING] >>> ");
+            } else {
+                LoadGameMessage command = serializer.fromJson(
+                        message, LoadGameMessage.class
+                );
+                System.out.print("\n");
+                ClientMain.chessGame = command.getGame();
+                ClientMain.chessBoard = ClientMain.chessGame.getBoard();
+                ClientMain.parseCommand("redraw");
+                System.out.println();
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public void resign(UserGameCommand resign) throws IOException, ExecutionException, InterruptedException {
+        var serializer = new Gson();
 
         session.getBasicRemote().sendText(serializer.toJson(resign));
-
-        return future.get();
     }
 
-    public String leave(UserGameCommand leave) throws IOException, ExecutionException, InterruptedException {
+    public void leave(UserGameCommand leave) throws IOException, ExecutionException, InterruptedException {
         var serializer = new Gson();
-        CompletableFuture<String> future = new CompletableFuture<>();
 
         session.getBasicRemote().sendText(serializer.toJson(leave));
-
-        return future.get();
     }
 
-    public String sendMove(MakeMoveCommand makeMove) throws IOException, ExecutionException, InterruptedException {
+    public void sendMove(MakeMoveCommand makeMove) throws IOException, ExecutionException, InterruptedException {
         var serializer = new Gson();
-        CompletableFuture<String> future = new CompletableFuture<>();
 
         session.getBasicRemote().sendText(serializer.toJson(makeMove));
-
-        return future.get();
     }
 
-    public String connect(UserGameCommand connect) throws Exception {
+    public void connect(UserGameCommand connect) throws Exception {
         var serializer = new Gson();
-        CompletableFuture<String> future = new CompletableFuture<>();
 
         WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-
-        container.connectToServer(WebSocket.class, URI.create("ws://localhost:7000/ws"));
+        session = container.connectToServer(this, URI.create("ws://localhost:8080/ws"));
 
         session.getBasicRemote().sendText(serializer.toJson(connect));
-        return future.get();
     }
 }

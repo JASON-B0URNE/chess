@@ -163,8 +163,8 @@ public class ChessPiece {
 
     private void pawnPossibleMoves(int row, int col, int rowIncrementer, ChessBoard board, ChessPosition myPosition, PieceType promotion) {
         validationCheck(row + rowIncrementer, col, board, myPosition, promotion, false);
-        validationCheck(row + rowIncrementer, col + INCREMENT_POSITIVE, board, myPosition, promotion, true);
-        validationCheck(row + rowIncrementer, col + INCREMENT_NEGATIVE, board, myPosition, promotion, true);
+        boolean nnn = validationCheck(row + rowIncrementer, col + INCREMENT_POSITIVE, board, myPosition, promotion, true);
+        boolean nn = validationCheck(row + rowIncrementer, col + INCREMENT_NEGATIVE, board, myPosition, promotion, true);
     }
 
     private boolean pawnSpecialMoves(int startRow, int endRow, int row, int col, int rowIncrementer, ChessBoard board, ChessPosition myPosition) {

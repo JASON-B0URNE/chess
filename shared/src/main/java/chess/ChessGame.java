@@ -141,7 +141,7 @@ public class ChessGame {
 
                 if (!Objects.equals(selectedPiece.getTeamColor(), teamColor)) {
                     if (Objects.equals(selectedPiece.getPieceType(), ChessPiece.PieceType.PAWN)) {
-                        Collection<ChessMove> pawnMoves = board.getPiece(position).pieceMoves(this.board, position);
+                        Collection<ChessMove> pawnMoves = board.getPiece(position).pieceMoves(board, position);
                         pawnMoves.removeIf(x ->
                                 x.getStartPosition().getColumn() == x.getEndPosition().getColumn()
                         );
@@ -152,11 +152,10 @@ public class ChessGame {
                 } else {
                     if (Objects.equals(selectedPiece.getPieceType(), ChessPiece.PieceType.KING)) {
                         kingPosition = position;
-                    } else {
-                        teamMoves.addAll(
-                                board.getPiece(position).pieceMoves(board, position)
-                        );
                     }
+                    teamMoves.addAll(
+                        board.getPiece(position).pieceMoves(board, position)
+                    );
                 }
             }
         }
@@ -183,10 +182,24 @@ public class ChessGame {
         teamMoves.forEach(x -> {
             ChessBoard testBoard = copyBoard.copy();
             movement(testBoard,x);
+                    if (Objects.equals(copyBoard.getPiece(x.getStartPosition()).getPieceType(),
+                            ChessPiece.PieceType.KING)) {
+                        System.out.print("");
+                    }
             CheckResult testResult = generateMoves(testBoard, teamColor);
 
-            if (!testResult.enemyPositions.contains(testResult.kingPosition)) {
-                safeMoves.add(x);
+            if (Objects.equals(copyBoard.getPiece(x.getStartPosition()).getPieceType(),
+                    ChessPiece.PieceType.KING)) {
+                if (!testResult.enemyPositions.contains(x.getEndPosition())) {
+
+                    if(result.enemyPositions.contains(result.kingPosition)) {
+                        safeMoves.add(x);
+                    }
+                }
+            } else {
+                if (!testResult.enemyPositions.contains(testResult.kingPosition)) {
+                    safeMoves.add(x);
+                }
             }
         });
 
@@ -225,9 +238,29 @@ public class ChessGame {
      * @return True if the specified team is in stalemate, otherwise false
      */
     public boolean isInStalemate(TeamColor teamColor) {
-        CheckResult result = generateMoves(this.board, teamColor);
+        if (isInCheck(teamColor)) {
+            return false;
+        }
 
-        return result.teamMoves.isEmpty();
+        for (int row = 1; row <= CHESS_BOARD_LENGTH; row++) {
+            for (int col = 1; col <= CHESS_BOARD_LENGTH; col++) {
+                ChessPosition position = new ChessPosition(row, col);
+                ChessPiece selectedPiece = board.getPiece(position);
+
+                if (selectedPiece == null) {
+                    continue;
+                }
+
+                if (selectedPiece.getTeamColor() == teamColor) {
+                    Collection<ChessMove> moves = validMoves(position);
+                    if (!moves.isEmpty()) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
     }
 
     /**

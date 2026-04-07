@@ -8,7 +8,9 @@ import model.AuthData;
 import requests.Response;
 import websocket.commands.MakeMoveCommand;
 import websocket.commands.UserGameCommand;
+import websocket.messages.ErrorMessage;
 import websocket.messages.LoadGameMessage;
+import websocket.messages.NotificationMessage;
 import websocket.messages.ServerMessage;
 
 import java.io.IOException;
@@ -23,19 +25,19 @@ import static ui.EscapeSequences.*;
 
 public class ClientMain {
     private static String status = "LOGGED_OUT";
-    private static String gameStatus = "OUT_OF_GAME";
+    public static String gameStatus = "OUT_OF_GAME";
     private static boolean quit = false;
-    private static ChessGame chessGame = new ChessGame();
-    private static ChessBoard chessBoard = chessGame.getBoard();
+    public static ChessGame chessGame = new ChessGame();
+    public static ChessBoard chessBoard = chessGame.getBoard();
     private static ServerFacade facade;
     private static AuthData session;
     private static Collection<Map<String, String>> listGames;
     private static ChessGame.TeamColor color;
     private static WebSocket wsConnection;
     private static Integer selectedGameID;
+    private static Output out;
 
     private static void clearDatabase() {
-
         try {
             Response response = facade.clear();
             if (!Objects.equals(response.code(), 200)) {
@@ -48,9 +50,10 @@ public class ClientMain {
         }
     }
 
-    private void observe(ArrayList<String> commandList) {
+    private static void observe(ArrayList<String> commandList) {
+        out = new Output(status, gameStatus);
         if (!Objects.equals(commandList.size(), 2) || !Objects.equals(gameStatus, "OUT_OF_GAME")) {
-            invalidCommand();
+            out.invalidCommand();
             return;
         }
         if(listGames == null || listGames.isEmpty()) {
@@ -72,20 +75,25 @@ public class ClientMain {
             }
 
             gameStatus = "OBSERVING";
-            color = ChessGame.TeamColor.WHITE;
-            printBoard(chessBoard, color, null);
+            wsConnection = new WebSocket();
+            wsConnection.connect(new UserGameCommand(
+                    UserGameCommand.CommandType.CONNECT, session.authToken(), gameID
+            ));
         } catch (Exception e) {
+            out = new Output(status, gameStatus);
             invalidCommand();
         }
     }
 
 
 
-    private void join(ArrayList<String> commandList) {
+    private static void join(ArrayList<String> commandList) {
+
         if (!Objects.equals(commandList.size(), 3)
                 || !(Objects.equals(commandList.get(2), "WHITE") || Objects.equals(commandList.get(2), "BLACK"))
                 || !Objects.equals(gameStatus, "OUT_OF_GAME")) {
-            invalidCommand();
+            out = new Output(status, gameStatus);
+            out.invalidCommand();
             return;
         }
         if (Objects.equals(status, "LOGGED_OUT")) {
@@ -94,12 +102,13 @@ public class ClientMain {
         }
         try {
             int gameID = Integer.parseInt(commandList.get(1));
-            int selectedGameID = gameID;
+            selectedGameID = gameID;
 
             Response response = facade.joinGame(session.authToken(), commandList.get(2), gameID);
-            handleResponse(wsConnection.connect(new UserGameCommand(
+            wsConnection = new WebSocket();
+            wsConnection.connect(new UserGameCommand(
                     UserGameCommand.CommandType.CONNECT, session.authToken(), gameID
-            )));
+            ));
 
             if (!Objects.equals(response.code(), 200)) {
                 handleErrors(response.code());
@@ -114,13 +123,14 @@ public class ClientMain {
                 }
             }
         } catch (Exception e) {
-            invalidCommand();
+            out = new Output(status, gameStatus);
+            out.invalidCommand();
         }
     }
 
 
 
-    private void deleteSession() {
+    private static void deleteSession() {
         var serializer = new Gson();
 
         try {
@@ -136,9 +146,10 @@ public class ClientMain {
         }
     }
 
-    private void logout(ArrayList<String> commandList) {
+    private static void logout(ArrayList<String> commandList) {
         if (!Objects.equals(commandList.size(), 1) || !Objects.equals(gameStatus, "OUT_OF_GAME")) {
-            invalidCommand();
+            out = new Output(status, gameStatus);
+            out.invalidCommand();
             return;
         }
         if (Objects.equals(status, "LOGGED_OUT")) {
@@ -149,11 +160,12 @@ public class ClientMain {
         deleteSession();
     }
 
-    private void list(ArrayList<String> commandList) {
+    private static void list(ArrayList<String> commandList) {
         var serializer = new Gson();
 
         if (!Objects.equals(commandList.size(), 1) || !Objects.equals(gameStatus, "OUT_OF_GAME")) {
-            invalidCommand();
+            out = new Output(status, gameStatus);
+            out.invalidCommand();
             return;
         }
         if (Objects.equals(status, "LOGGED_OUT")) {
@@ -199,11 +211,12 @@ public class ClientMain {
         }
     }
 
-    private void create(ArrayList<String> commandList) {
+    private static void create(ArrayList<String> commandList) {
         var serializer = new Gson();
 
         if (!Objects.equals(commandList.size(), 2) || !Objects.equals(gameStatus, "OUT_OF_GAME")) {
-            invalidCommand();
+            out = new Output(status, gameStatus);
+            out.invalidCommand();
             return;
         }
         if (Objects.equals(status, "LOGGED_OUT")) {
@@ -224,11 +237,12 @@ public class ClientMain {
         }
     }
 
-    private void quit(ArrayList<String> commandList) {
+    private static void quit(ArrayList<String> commandList) {
         var serializer = new Gson();
 
         if (!Objects.equals(commandList.size(), 1) || !Objects.equals(gameStatus, "OUT_OF_GAME")) {
-            invalidCommand();
+            out = new Output(status, gameStatus);
+            out.invalidCommand();
             return;
         }
         quit = true;
@@ -237,12 +251,13 @@ public class ClientMain {
         }
     }
 
-    private void login(ArrayList<String> commandList) {
+    private static void login(ArrayList<String> commandList) {
         var serializer = new Gson();
 
         if (!Objects.equals(commandList.size(), 3) ||
                 Objects.equals(status, "LOGGED_IN") || !Objects.equals(gameStatus, "OUT_OF_GAME")) {
-            invalidCommand();
+            out = new Output(status, gameStatus);
+            out.invalidCommand();
             return;
         }
         try {
@@ -259,12 +274,13 @@ public class ClientMain {
         }
     }
 
-    private void register(ArrayList<String> commandList) {
+    private static void register(ArrayList<String> commandList) {
         var serializer = new Gson();
 
         if (!Objects.equals(commandList.size(), 4) ||
                 Objects.equals(status, "LOGGED_IN") || !Objects.equals(gameStatus, "OUT_OF_GAME")) {
-            invalidCommand();
+            out = new Output(status, gameStatus);
+            out.invalidCommand();
             return;
         }
         try {
@@ -281,20 +297,16 @@ public class ClientMain {
         }
     }
 
-    private void move(ArrayList<String> commandList) {
+    private static void move(ArrayList<String> commandList) {
         if (commandList.size() < 3 || commandList.size() > 4 ||
                 !Objects.equals(status, "LOGGED_IN") || !Objects.equals(gameStatus, "PLAYING")) {
-            invalidCommand();
+            out = new Output(status, gameStatus);
+            out.invalidCommand();
             return;
         }
 
         ChessPosition startPosition = validatePosition(commandList.get(1));
         ChessPosition endPosition = validatePosition(commandList.get(2));
-
-        if (!Objects.equals(chessBoard.getPiece(startPosition).getTeamColor(), color)) {
-            System.out.print(SET_TEXT_COLOR_RED + "ERROR: Cannot move pieces of the opposite color." + RESET_TEXT_COLOR + "\n");
-            return;
-        }
 
         if (startPosition == null || endPosition == null) {
             if (startPosition == null) {
@@ -304,6 +316,16 @@ public class ClientMain {
                 System.out.print(SET_TEXT_COLOR_RED + "ERROR: Invalid move end position." + RESET_TEXT_COLOR + "\n");
             }
 
+            return;
+        }
+
+        if (chessBoard.getPiece(startPosition) == null) {
+            System.out.print(SET_TEXT_COLOR_RED + "ERROR: No piece selected." + RESET_TEXT_COLOR + "\n");
+            return;
+        }
+
+        if (!Objects.equals(chessBoard.getPiece(startPosition).getTeamColor(), color)) {
+            System.out.print(SET_TEXT_COLOR_RED + "ERROR: Cannot move pieces of the opposite color." + RESET_TEXT_COLOR + "\n");
             return;
         }
 
@@ -328,15 +350,15 @@ public class ClientMain {
 
         ChessMove move = new ChessMove(startPosition, endPosition, promotionPiece);
         try {
-            handleResponse(wsConnection.sendMove(new MakeMoveCommand(
+            wsConnection.sendMove(new MakeMoveCommand(
                     session.authToken(), selectedGameID, move
-            )));
+            ));
         } catch (Exception e) {
             return;
         }
     }
 
-    private void parseCommand(String line) throws IOException, ExecutionException, InterruptedException {
+    public static void parseCommand(String line) throws IOException, ExecutionException, InterruptedException {
         var args = line.split(" ");
 
         ArrayList<String> commandList = new ArrayList<>(Arrays.asList(args));
@@ -353,7 +375,8 @@ public class ClientMain {
             quit(commandList);
         } else if (Objects.equals(command, "help")) {
             if (!Objects.equals(commandList.size(), 1)) {
-                invalidCommand();
+                out = new Output(status, gameStatus);
+                out.invalidCommand();
                 return;
             }
 
@@ -375,27 +398,21 @@ public class ClientMain {
             gameActions.redraw(commandList);
         } else if (Objects.equals(command, "leave")) {
             gameActions.leave(commandList);
+            wsConnection.resign(new UserGameCommand(
+                    UserGameCommand.CommandType.LEAVE, session.authToken(), selectedGameID
+            ));
         } else if (Objects.equals(command, "move")) {
             move(commandList);
         } else if (Objects.equals(command, "resign")) {
             gameActions.resign(commandList);
-            handleResponse(wsConnection.resign(new UserGameCommand(
+            wsConnection.resign(new UserGameCommand(
                     UserGameCommand.CommandType.RESIGN, session.authToken(), selectedGameID
-            )));
+            ));
         } else if (Objects.equals(command, "highlight")) {
             gameActions.highlight(commandList);
         } else {
-            invalidCommand();
-        }
-    }
-
-    void handleResponse(String response) {
-        var serializer = new Gson();
-        if (response.contains("LOAD_GAME")) {
-            LoadGameMessage load = serializer.fromJson(response, LoadGameMessage.class);
-            chessGame = load.getGame();
-
-            printBoard(chessBoard, color, null);
+            out = new Output(status, gameStatus);
+            out.invalidCommand();
         }
     }
 
@@ -413,7 +430,7 @@ public class ClientMain {
             Scanner scanner = new Scanner(System.in);
             String line = scanner.nextLine();
             parseCommand(line);
-            System.out.println();
+            System.out.print("\n");
         }
     }
 }

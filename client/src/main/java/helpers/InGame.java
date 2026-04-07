@@ -4,6 +4,7 @@ import chess.ChessBoard;
 import chess.ChessGame;
 import chess.ChessMove;
 import chess.ChessPosition;
+import client.ClientMain;
 import client.WebSocket;
 
 import java.util.ArrayList;
@@ -45,24 +46,20 @@ public class InGame {
 
     public void leave(ArrayList<String> commandList) {
         if (commandList.size() != 1 ||
-                !Objects.equals(status, "LOGGED_IN") || !Objects.equals(gameStatus, "OBSERVING")) {
+                !Objects.equals(status, "LOGGED_IN") || !(Objects.equals(gameStatus, "OBSERVING") ||
+                    Objects.equals(gameStatus, "PLAYING"))) {
             invalidCommand();
             return;
         }
 
-        gameStatus = "OUT_OF_GAME";
-        System.out.print(SET_TEXT_COLOR_GREEN + "You have left successfully." + RESET_TEXT_COLOR + "\n");
+        ClientMain.gameStatus = "OUT_OF_GAME";
     }
 
     public void resign(ArrayList<String> commandList) {
         if (commandList.size() != 1 ||
                 !Objects.equals(status, "LOGGED_IN") || !Objects.equals(gameStatus, "PLAYING")) {
             invalidCommand();
-            return;
         }
-
-        gameStatus = "OUT_OF_GAME";
-        System.out.print(SET_TEXT_COLOR_GREEN + "You have resigned successfully." + RESET_TEXT_COLOR + "\n");
     }
 
     public void highlight(ArrayList<String> commandList) {
