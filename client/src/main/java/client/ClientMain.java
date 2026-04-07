@@ -32,7 +32,7 @@ public class ClientMain {
     private static ServerFacade facade;
     private static AuthData session;
     private static Collection<Map<String, String>> listGames;
-    private static ChessGame.TeamColor color;
+    public static ChessGame.TeamColor color;
     private static WebSocket wsConnection;
     private static Integer selectedGameID;
     private static Output out;
@@ -404,10 +404,12 @@ public class ClientMain {
         } else if (Objects.equals(command, "move")) {
             move(commandList);
         } else if (Objects.equals(command, "resign")) {
-            gameActions.resign(commandList);
-            wsConnection.resign(new UserGameCommand(
-                    UserGameCommand.CommandType.RESIGN, session.authToken(), selectedGameID
-            ));
+            boolean verify = gameActions.resign(commandList);
+            if (verify) {
+                wsConnection.resign(new UserGameCommand(
+                        UserGameCommand.CommandType.RESIGN, session.authToken(), selectedGameID
+                ));
+            }
         } else if (Objects.equals(command, "highlight")) {
             gameActions.highlight(commandList);
         } else {

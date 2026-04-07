@@ -10,6 +10,7 @@ import client.WebSocket;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.Scanner;
 
 import static helpers.Validation.validatePosition;
 import static helpers.Output.invalidCommand;
@@ -55,11 +56,18 @@ public class InGame {
         ClientMain.gameStatus = "OUT_OF_GAME";
     }
 
-    public void resign(ArrayList<String> commandList) {
+    public Boolean resign(ArrayList<String> commandList) {
         if (commandList.size() != 1 ||
                 !Objects.equals(status, "LOGGED_IN") || !Objects.equals(gameStatus, "PLAYING")) {
             invalidCommand();
         }
+        System.out.println();
+        System.out.print(SET_TEXT_COLOR_RED + "Are you sure you want to resign? [y|n]: " + RESET_TEXT_COLOR);
+        Scanner scanner = new Scanner(System.in);
+        String line = scanner.nextLine();
+
+        return line.equalsIgnoreCase("y");
+
     }
 
     public void highlight(ArrayList<String> commandList) {

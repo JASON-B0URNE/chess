@@ -37,6 +37,8 @@ public class Output {
                 System.out.print(SET_TEXT_COLOR_MAGENTA);
                 System.out.print("EXAMPLE:\nhighlight e4 - displays all legal moves for the piece at e4\n");
                 System.out.print(RESET_TEXT_COLOR);
+                System.out.print(SET_TEXT_COLOR_BLUE + "leave" + RESET_TEXT_COLOR);
+                System.out.print(" - current game\n");
                 System.out.print(SET_TEXT_COLOR_BLUE + "help" + RESET_TEXT_COLOR);
                 System.out.print(" - with possible commands\n");
                 return;

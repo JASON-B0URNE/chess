@@ -1,9 +1,6 @@
 package server;
 
-import chess.ChessBoard;
-import chess.ChessGame;
-import chess.ChessMove;
-import chess.ChessPosition;
+import chess.*;
 import com.google.gson.Gson;
 import dataaccess.GameDOA;
 import io.javalin.*;
@@ -264,6 +261,7 @@ public class Server {
             boolean checkmate = game.isInCheckmate(oppositeColor);
             if (checkmate) {
                 specialMessage = new NotificationMessage(oppositeColor + " Player " + oppositeUsername + " - is checkmated.\n");
+                gameStatus.put(gameID, "CHECKMATE");
             }
         }
 
@@ -275,11 +273,11 @@ public class Server {
 
         if (Objects.equals(gameData.whiteUsername(), user.username())) {
             notificationMessage = new NotificationMessage("WHITE Player " + user.username() + " - moved " +
-                    board.getPiece(move.getStartPosition()).toString() +
+                    parsePiece(board.getPiece(move.getStartPosition()).getPieceType()) +
                     " " + parsePosition(move.getStartPosition()) + " to " + parsePosition(move.getEndPosition()) + ".\n");
         } else if (Objects.equals(gameData.blackUsername(), user.username())) {
             notificationMessage = new NotificationMessage("BLACK Player " + user.username() + " - moved " +
-                    board.getPiece(move.getStartPosition()).toString() +
+                    parsePiece(board.getPiece(move.getStartPosition()).getPieceType()) +
                     " " + parsePosition(move.getStartPosition()) + " to " + parsePosition(move.getEndPosition()) + ".\n");
         } else {
             ErrorMessage errorMessage = new ErrorMessage("Error: Invalid user command.\n");
@@ -329,32 +327,52 @@ public class Server {
     }
 
     private String parsePosition(ChessPosition position) {
-        Integer row = position.getRow();
-        Integer col = position.getColumn();
+        int row = position.getRow();
+        int col = position.getColumn();
 
-        String string = null;
+        String string = "";
 
-        if (row == 1) {
+        if (col == 1) {
             string += "a";
-        } else if (row == 2) {
+        } else if (col == 2) {
             string += "b";
-        } else if (row == 3) {
+        } else if (col == 3) {
             string += "c";
-        } else if (row == 4) {
+        } else if (col == 4) {
             string += "d";
-        } else if (row == 5) {
+        } else if (col == 5) {
             string += "e";
-        } else if (row == 6) {
+        } else if (col == 6) {
             string += "f";
-        } else if (row == 7) {
+        } else if (col == 7) {
             string += "g";
-        } else if (row == 8) {
+        } else if (col == 8) {
             string += "h";
         }
 
-        string += col.toString();
+        string += String.valueOf(row);
 
         return string;
+    }
+
+    private String parsePiece(ChessPiece.PieceType type) {
+        String piece = "";
+
+        if (type == ChessPiece.PieceType.KING) {
+            piece += "KING";
+        } else if (type == ChessPiece.PieceType.QUEEN) {
+            piece += "QUEEN";
+        } else if (type == ChessPiece.PieceType.ROOK) {
+            piece += "ROOK";
+        } else if (type == ChessPiece.PieceType.BISHOP) {
+            piece += "BISHOP";
+        } else if (type == ChessPiece.PieceType.KNIGHT) {
+            piece += "KNIGHT";
+        } else if (type == ChessPiece.PieceType.PAWN) {
+            piece += "PAWN";
+        }
+
+        return piece;
     }
 
     public int run(int desiredPort) {

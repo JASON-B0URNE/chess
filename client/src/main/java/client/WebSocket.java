@@ -47,8 +47,9 @@ public class WebSocket {
                 System.out.print("\n");
                 ClientMain.chessGame = command.getGame();
                 ClientMain.chessBoard = ClientMain.chessGame.getBoard();
-                ClientMain.parseCommand("redraw");
+                printBoard(ClientMain.chessBoard, ClientMain.color, null);
                 System.out.println();
+                System.out.print("[" + ClientMain.gameStatus + "] >>> ");
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
